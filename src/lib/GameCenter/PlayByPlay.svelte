@@ -1,7 +1,7 @@
 <script>
     import { getPlayByPlay, getGameStats, getPlayerStats, waitForAll, round, getGameDrives, getStarterPositions, LZString } from '$lib/utils/helper'; 
-    import filmData from '/Users/jessekovacs/Downloads/Film Data Processed - JSON.json';
-    import filmJson from '/Users/jessekovacs/Downloads/Film Data Processed - JSON (2).json';
+    // import filmData from '/Users/jessekovacs/Downloads/Film Data Processed - JSON.json';
+    // import filmJson from '/Users/jessekovacs/Downloads/Film Data Processed - JSON (2).json';
     import LinearProgress from '@smui/linear-progress';
 
     export let newLoading, nflTeams, nflMatchups, yearLeagueData, fantasyStarters, managerInfo, weekMatchups, playersInfo, nflPlayerInfo, gameSelection, matchSelection, managerSelection, fantasyProducts, viewPlayerID, showGameBox, showMatchBox, leaderBoardInfo, weekSelection, yearSelection;
