@@ -1,11 +1,9 @@
 <script context="module">
-	import { getLeagueRecords, getLeagueTransactions, getManagerRecords, waitForAll } from '$lib/utils/helper';
+	import { getLeagueRecords, waitForAll } from '$lib/utils/helper';
 
     export async function load() {
         const recordsInfo = waitForAll(
 			getLeagueRecords(false),
-			getLeagueTransactions(false),
-            getManagerRecords(false),
 		)
 	
 		return {
@@ -43,8 +41,8 @@
             <p>Loading league records...</p>
             <LinearProgress indeterminate />
         </div>
-    {:then [leagueRecords, {totals, stale}, managerRecords]}
-        <Records {leagueRecords} {totals} {stale} {managerRecords} />
+    {:then [leagueRecords]}
+        <Records {leagueRecords} />
     {:catch error}
         <!-- promise was rejected -->
         <p>Something went wrong: {error.message}</p>

@@ -1,44 +1,47 @@
 <script>
     import { gotoManager } from '$lib/utils/helper';
 
-    export let viewManager, players, managerRecords, records;
+    export let viewManager, players, records;
 
     // FAVORITE PLAYER - scored the most all-time points for manager
-    const favoritePlayer = managerRecords.playerBook.grandTotals.combined[viewManager.managerID].slice().sort((a, b) => b.playerPoints - a.playerPoints)[0].playerID;
+    const favoritePlayer = records.recordArrays.managers.alltime.combined[viewManager.managerID].players.overallHighs[0].playerID;
 
     // RIVAL - most competitive match history
     let rivals = [];
-    for(const manager in managerRecords.headToHeadRecords.combined.alltime[viewManager.managerID]) {
-        const possRival = managerRecords.headToHeadRecords.combined.alltime[viewManager.managerID][manager];
-        if(possRival.wins > 0 && possRival.losses > 0) {
-            rivals.push(possRival);
-        }
+    for(const manager in records.headToHeadRecords.combined.alltime[viewManager.managerID]) {
+        const possRival = records.headToHeadRecords.combined.alltime[viewManager.managerID][manager];
+        if(possRival.outcomes.match.W > 0 && possRival.outcomes.match.L > 0) rivals.push(possRival);
     }
-    const rival = rivals.sort((a, b) => a.differential - b.differential)[0];
+    const rival = rivals.sort((a, b) => a.margins.match.mpg - b.margins.match.mpg)[0];
 
     // POSITION SPECIALTY - highest scoring compared to league average
     let positionPlacements = [];
-    for(const position in records.playerPositionRecords.league.alltime.combined.leagueAverages) {
-        const diff = records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.find(m => m.recordManID == viewManager.managerID).fptspg - records.playerPositionRecords.league.alltime.combined.leagueAverages[position].fptspg;
+    for(const position in records.recordArrays.league.alltime.combined.positions.leagueAverages) {
+        const diff = records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.find(m => m.recordManID == viewManager.managerID).realPPG - records.recordArrays.league.alltime.combined.positions.leagueAverages[position].realPPG;
         positionPlacements.push({
             position,
-            fptspg: records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.find(m => m.recordManID == viewManager.managerID).fptspg,
-            rank: records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.indexOf(records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.find(m => m.recordManID == viewManager.managerID)) + 1,
+            fptspg: records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.find(m => m.recordManID == viewManager.managerID).realPPG,
+            rank: records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.indexOf(records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.find(m => m.recordManID == viewManager.managerID)) + 1,
             diff,
         })
     }
     const sortOrder = ['diff', 'rank']; 
     for(const sortType of sortOrder) {
-        if(!positionPlacements[0][sortType] && positionPlacements[0][sortType] != 0) {
-            continue;
-        }
+        if(!positionPlacements[0][sortType] && positionPlacements[0][sortType] != 0) continue;
         if(sortType == 'diff') {
             positionPlacements = [...positionPlacements].sort((a,b) => b[sortType] - a[sortType]);
         } else {
-            positionPlacements = [...positionPlacements].sort((a,b) => a[sortType] - b[sortType])
+            positionPlacements = [...positionPlacements].sort((a,b) => a[sortType] - b[sortType]);
         }
     }
     const positionSpecialty = positionPlacements[0].position;
+
+    // TRADING SCALE - relative involvement in league trades
+    let leagueTrades = 0;
+    for(const manager of records.recordArrays.league.alltime.combined.transactions.trade) {
+        leagueTrades += manager.trade;
+    }
+    const tradingScale = leagueTrades != 0 ? Math.round(10 * records.recordArrays.league.alltime.combined.transactions.trade.find(m => m.recordManID == viewManager.managerID).trade / leagueTrades) : 0;
 
 </script>
 
@@ -241,10 +244,10 @@
                 Desire to Trade
             </div>
             <div class="infoIcon">
-                <span class="tradingScale">{viewManager.tradingScale}</span>
+                <span class="tradingScale">{tradingScale}</span>
             </div>
             <div class="infoAnswer">
-                {viewManager.tradingScale} out of 10
+                {tradingScale} out of 10
             </div>
         </div>
     {/if}
@@ -277,15 +280,15 @@
         </div>
     {/if}
     <!-- Rival -->
-    <div class="infoSlot infoRival" on:click={() => gotoManager(rival.againstRecordManID)}>
+    <div class="infoSlot infoRival" on:click={() => gotoManager(rival.oppRecordManID)}>
         <div class="infoLabel">
             Rival
         </div>
         <div class="infoIcon">
-            <img class="rival" src="{rival.againstManager.avatar}" alt="rival"/>
+            <img class="rival" src="{rival.oppManager.avatar}" alt="rival"/>
         </div>
         <div class="infoAnswer">
-            {rival.againstManager.realname}
+            {rival.oppManager.realname}
         </div>
     </div>
 </div>

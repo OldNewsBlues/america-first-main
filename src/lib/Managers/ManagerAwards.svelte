@@ -1,23 +1,17 @@
 <script>
-    import { round } from "$lib/utils/helper";
+    import { round, capitalizeFirstLetter } from "$lib/utils/helper";
 
     export let awards, records, roster, recordManID;
 
     let displayAwards = [];
-
-    const capitalizeFirstLetter = (string) => {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
     
-    let formerGlobal = false;
-
     const computePodiums = (currentRoster) => {
-        formerGlobal = false;
         displayAwards = [];
 
         // first look through annual awards (champion, second, etc)
         for(const podium of awards.podiums) {
             for(const award in podium) {
+                if(award == 'champRosters') continue;
 
                 if(podium[award]?.recordManID == recordManID) {
                     displayAwards.push({
@@ -49,91 +43,114 @@
         }
 
         // Next look through record books
-        const leagueRosterRecords = [];
-        for(const key in records.leagueRosterRecords) {
-            const record = records.leagueRosterRecords[key];
-            record.recordManID = key;
-            leagueRosterRecords.push(record);
+        const leagueRosterRecords = {};
+        for(const key in records.recordArrays.league.alltime.combined) {
+            if(key != 'narrowestVictories' && key != 'weekHighs' && key != 'periodHighs' && key != 'biggestBlowouts') continue;
+            if(records.recordArrays.league.alltime.combined[key].find(m => m.recordManID == recordManID) && records.recordArrays.league.alltime.combined[key].indexOf(records.recordArrays.league.alltime.combined[key].find(m => m.recordManID == recordManID)) < 5) leagueRosterRecords[key] = records.recordArrays.league.alltime.combined[key];
         }
-        const winRecords = [...leagueRosterRecords].sort((a, b) => b.wins - a.wins);
-        const pointsRecords = [...leagueRosterRecords].sort((a, b) => b.fptsFor - a.fptsFor);
-        const iqRecords = [...leagueRosterRecords].sort((a, b) => (b.fptsFor/b.potentialPoints) - (a.fptsFor/a.potentialPoints));
-
-        for(let i = 0; i < records.leagueWeekRecords.length; i++) {
-            const leagueWeekRecord = records.leagueWeekRecords[i];
-            const seasonLongRecord = records.leagueRecordArrays.regularSeason.period_Top[i];
-            const winRecord = winRecords[i];
-            const pointsRecord = pointsRecords[i];
-            const iqRecord = iqRecords[i];
-
-            if(winRecord?.recordManID == recordManID && i < 3) {
+        for(const key in leagueRosterRecords) {
+            const recordMan = leagueRosterRecords[key].find(m => m.recordManID == recordManID);
+            if(key == 'weekHighs') {
                 displayAwards.push({
-                    award: i + 1,
-                    icon: '/awards/record-' + (i+1) + '.png',
-                    type: 'All-Time Wins Record',
-                    extraInfo: winRecord.wins,
-                    wins: true
-                })
-            }
-
-            if(pointsRecord?.recordManID == recordManID && i < 3) {
-                displayAwards.push({
-                    award: i + 1,
-                    icon: '/awards/record-' + (i+1) + '.png',
-                    type: 'All-Time Fantasy Points Record',
-                    extraInfo: round(pointsRecord.fptsFor)
-                })
-            }
-
-            if(iqRecord?.recordManID == recordManID && i < 3) {
-                displayAwards.push({
-                    award: i + 1,
-                    icon: '/awards/record-' + (i+1) + '.png',
-                    type: 'All-Time Lineup IQ Record',
-                    extraInfo: round(iqRecord.fptsFor * 100 / iqRecord.potentialPoints),
-                    iq: true
-                })
-            }
-
-            if(leagueWeekRecord.recordManID == recordManID) {
-                displayAwards.push({
-                    award: i + 1,
-                    icon: '/awards/' + (i < 3 ? `record-${i+1}` : 'generic') + '.png',
+                    award: leagueRosterRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueRosterRecords[key].indexOf(recordMan) < 3 ? `record-${leagueRosterRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
                     type: 'All-Time Single-Week Record',
-                    originalName: leagueWeekRecord.manager.name,
-                    year: leagueWeekRecord.year,
-                    week: leagueWeekRecord.week,
-                    extraInfo: round(leagueWeekRecord.fpts),
+                    originalName: recordMan.manager.name,
+                    year: recordMan.year,
+                    week: recordMan.week,
+                    extraInfo: round(recordMan.fpts.starters.real),
+                    pts: true,
                 })
-            }
-
-            if(seasonLongRecord.recordManID == recordManID) {
+            } else if(key == 'periodHighs') {
                 displayAwards.push({
-                    award: i + 1,
-                    icon: '/awards/' + (i < 3 ? `record-${i+1}` : 'generic') + '.png',
+                    award: leagueRosterRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueRosterRecords[key].indexOf(recordMan) < 3 ? `record-${leagueRosterRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
                     type: 'All-Time Season Long Points',
-                    originalName: seasonLongRecord.manager.name,
-                    year: seasonLongRecord.year,
-                    extraInfo: round(seasonLongRecord.fpts),
+                    originalName: recordMan.manager.name,
+                    year: recordMan.year,
+                    extraInfo: round(recordMan.fpts.starters.realPPG),
+                    pts: true,
+                })
+            } else if(key == 'biggestBlowouts') {
+                displayAwards.push({
+                    award: leagueRosterRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueRosterRecords[key].indexOf(recordMan) < 3 ? `record-${leagueRosterRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Biggest Blowouts',
+                    originalName: recordMan.manager.name,
+                    year: recordMan.year,
+                    week: recordMan.week,
+                    extraInfo: round(recordMan.matchDifferential),
+                    margin: true,
+                })
+            } else if(key == 'narrowestVictories') {
+                displayAwards.push({
+                    award: leagueRosterRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueRosterRecords[key].indexOf(recordMan) < 3 ? `record-${leagueRosterRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Narrowest Victories',
+                    originalName: recordMan.manager.name,
+                    year: recordMan.year,
+                    week: recordMan.week,
+                    extraInfo: round(recordMan.matchDifferential),
+                    margin: true,
                 })
             }
         }
-        for(const yearRecords of records.seasonWeekRecords) {
-            for(let i = 0; i < 3; i++) {
-                const seasonPointsRecord = yearRecords.seasonPointsRecords[i];
-
-                if(seasonPointsRecord.recordManID == recordManID) {
-                    displayAwards.push({
-                        award: i + 1,
-                        icon: '/awards/' + (i < 3 ? `record-${i+1}` : 'generic') + '.png',
-                        type: `${yearRecords.year} Single Week Record`,
-                        originalName: seasonPointsRecord.manager.name,
-                        year: null,
-                        week: seasonPointsRecord.week,
-                        extraInfo: seasonPointsRecord.fpts,
-                    })
-                }
-            }
+        const leagueManagerRecords = {
+            winRecords: records.recordArrays.league.alltime.combined.managerBests.winRecords,
+            pointsRecords: records.recordArrays.league.alltime.combined.managerBests.fptsHistories,
+            iqRecords: records.recordArrays.league.alltime.combined.managerBests.lineupIqs,
+            epeRecords: records.recordArrays.league.alltime.combined.managerBests.epeRecords,
+            medianRecords: records.recordArrays.league.alltime.combined.managerBests.medianRecords,
+        }
+        for(const key in leagueManagerRecords) {
+            const recordMan = leagueManagerRecords[key].find(m => m.recordManID == recordManID);
+            if(!recordMan) continue;
+            if(key == 'winRecords' && leagueManagerRecords[key].indexOf(recordMan) < 5) {
+                displayAwards.push({
+                    award: leagueManagerRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueManagerRecords[key].indexOf(recordMan) < 3 ? `record-${leagueManagerRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Highest Win %',
+                    originalName: recordMan.manager.name,
+                    extraInfo: round(recordMan.outcomes.match.perc),
+                    wins: true,
+                })
+            } else if(key == 'pointsRecords' && leagueManagerRecords[key].indexOf(recordMan) < 5) {
+                displayAwards.push({
+                    award: leagueManagerRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueManagerRecords[key].indexOf(recordMan) < 3 ? `record-${leagueManagerRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Highest PPG',
+                    originalName: recordMan.manager.name,
+                    extraInfo: round(recordMan.fpts.starters.realPPG),
+                    pts: true,
+                })
+            } else if(key == 'iqRecords' && leagueManagerRecords[key].indexOf(recordMan) < 5) {
+                displayAwards.push({
+                    award: leagueManagerRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueManagerRecords[key].indexOf(recordMan) < 3 ? `record-${leagueManagerRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Highest Lineup IQ',
+                    originalName: recordMan.manager.name,
+                    extraInfo: round(recordMan.iq),
+                    iq: true,
+                })
+            } else if(key == 'epeRecords' && leagueManagerRecords[key].indexOf(recordMan) < 5) {
+                displayAwards.push({
+                    award: leagueManagerRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueManagerRecords[key].indexOf(recordMan) < 3 ? `record-${leagueManagerRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Highest EPE Win %',
+                    originalName: recordMan.manager.name,
+                    extraInfo: round(recordMan.outcomes.EPE.perc),
+                    wins: true,
+                })
+            } else if(key == 'medianRecords' && leagueManagerRecords[key].indexOf(recordMan) < 5) {
+                displayAwards.push({
+                    award: leagueManagerRecords[key].indexOf(recordMan) + 1,
+                    icon: '/awards/' + (leagueManagerRecords[key].indexOf(recordMan) < 3 ? `record-${leagueManagerRecords[key].indexOf(recordMan)+1}` : 'generic') + '.png',
+                    type: 'All-Time Highest Median Win %',
+                    originalName: recordMan.manager.name,
+                    extraInfo: round(recordMan.outcomes.median.perc),
+                    wins: true,
+                })
+            } 
         }
     }
 
@@ -149,11 +166,6 @@
                 return '3rd Place'
             case 4:
             case 5:
-            case 6:
-            case 7:
-            case 8:
-            case 9:
-            case 10:
                 return award + 'th Place';
             case 'Champion':
                 return award
@@ -306,14 +318,11 @@
                 </div>
                 <div class="awardLabel">{award.type == 'award' ? `${award.year} ` : ''}{computeAward(award.award)}</div>
                 {#if award.extraInfo}
-                    <div class="subText">{award.year ? `${award.year} ` : ''}{award.week ? `Week ${award.week} ` : ''}{award.year || award.week ? ' - ' : ''}{award.extraInfo}{award.wins ? ' Wins' : ''}{award.iq ? '%' : ''}{!award.wins && !award.iq ? 'pts' : ''}</div>
+                    <div class="subText">{award.year ? `${award.year} ` : ''}{award.week ? `Week ${award.week} ` : ''}{award.year || award.week ? ' - ' : ''}{award.margin ? '+' : ''}{award.extraInfo}{award.wins ? '%' : ''}{award.iq ? '%' : ''}{award.pts || award.margin ? 'pts' : ''}</div>
                 {/if}
             </div>
         {:else}
             <p class="sad">...nothing yet</p>
         {/each}
     </div>
-    {#if formerGlobal}
-        <p class="disclaimer">*Awarded under a previous manager</p>
-    {/if}
 </div>

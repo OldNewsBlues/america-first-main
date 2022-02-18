@@ -1,15 +1,9 @@
 <script>
-	import {cleanName, gotoManager, managers} from '$lib/utils/helper';
-	export let podium, currentManagers;
+	import {gotoManager} from '$lib/utils/helper';
+	export let podium, players;
 
-	const { year, champion, second, third, divisions, toilet } = podium;
+	const { year, champion, second, third, divisions, toilet, champRoster } = podium;
 
-	// const getNames = (name, recordManID) => {
-	// 	if(cleanName(name) != cleanName(currentManagers[recordManID].name)) {
-	// 		return `${name}<div class="curOwner">(${currentManagers[recordManID].name})</div>`;
-	// 	}
-	// 	return name;
-	// }
 </script>
 
 <style>
@@ -329,6 +323,145 @@
 			font-size: 0.5em;
 		}
 	}
+
+	:global(span.nickname) {
+		color: #888;
+		font-style: italic;
+		font-size: 0.8em;
+	}
+
+	.playerAvatar {
+		vertical-align: middle;
+		height: 45px;
+		width: 45px;
+		background-position: center;
+		background-repeat: no-repeat;
+		background-size: auto 45px;
+		margin: 5px 0;
+	}
+	.pos {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 8px;
+		width: 46px;
+		height: 32px;
+		color: var(--gcPlayText);
+	}
+
+	.QB {
+		background-color: var(--QB);
+	}
+
+	.WR {
+		background-color: var(--WR);
+	}
+
+	.RB {
+		background-color: var(--RB);
+	}
+
+	.TE {
+		background-color: var(--TE);
+	}
+
+	.FLEX {
+		background: linear-gradient(to right, var(--WR), var(--WR) 33.33%, var(--RB) 33.33%, var(--RB) 66.66%, var(--TE) 66.66%);
+	}
+
+	.WRRB {
+		background: linear-gradient(to right, var(--WR), var(--WR) 50%, var(--RB) 50%);
+	}
+
+	.K {
+		background-color: var(--K);
+	}
+
+	.S-FLEX {
+		background: linear-gradient(to right, var(--WR), var(--WR) 25%, var(--RB) 25%, var(--RB) 50%, var(--TE) 50%, var(--TE) 75%, var(--QB));
+		background-color: #8f66ff;
+	}
+
+	.R-FLEX {
+		background: linear-gradient(to right, var(--WR), var(--WR) 50%, var(--TE) 50%);
+	}
+
+	.DEF {
+		background-color: var(--DEF);
+	}
+
+	.DL {
+		background-color: var(--DL);
+	}
+
+	.LB {
+		background-color: var(--LB);
+	}
+
+	.DB {
+		background-color: var(--DB);
+	}
+
+	.IDP {
+		background: linear-gradient(to right, var(--DL), var(--DL) 33.33%, var(--LB) 33.33%, var(--LB) 66.66%, var(--DB) 66.66%);
+	}
+
+	.BN {
+		background-color: var(--BN);
+	}
+
+	.champRosterWrap {
+		position: relative;
+		display: inline-flex;
+		flex-direction: column;
+		color: var(--gcPlayRowText);
+		width: 100%;
+	}
+
+	.champRosterHeader {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.5em;
+		font-weight: 420;
+		padding: 0 0 1% 0;
+	}
+
+	.champRoster {
+		position: relative;
+		display: inline-flex;
+		background-color: var(--gcBox);
+		width: 98%;
+		height: 180px;
+		border-radius: 1em;
+		padding: 1%;
+	}
+
+	.champRosterRow {
+		position: relative;
+		display: inline-flex;
+		background-color: var(--gcMain);
+		border-radius: 1em;
+		height: 98%;
+		padding: 1%;
+	}
+
+	.champPlayer {
+		position: relative;
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.champPlayerName {
+		line-height: 1em;
+		position: relative;
+		display: inline-flex;
+		color: var(--gcPlayText);
+	}
+
 </style>
 
 <div class="awards">
@@ -349,6 +482,27 @@
 
 		<img src="{third.avatar}" class="third champ clickable" on:click={() => gotoManager(third.recordManID)} alt="3rd" />
 		<span class="label thirdLabel clickable" on:click={() => gotoManager(third.recordManID)}>{third.realname}<br><div class="curOwner">{third.name}</div></span>
+	</div>
+	<div class="champRoster">
+		<div class="champRosterWrap">
+			<div class="champRosterHeader">
+				{year} Championship Roster
+			</div>
+			<div class="champRosterRow">
+				{#each champRoster.starters as starter, ix}
+					<div class="champPlayer" style="width: {100 / champRoster.starters.length - 2 / champRoster.starters.length}%">
+						<div class="pos {champRoster.rosterPositions[ix]}">{champRoster.rosterPositions[ix]}</div>
+						<div class="playerAvatar" style="background-image: url('{players[starter].pos == 'DEF' ? `https://sleepercdn.com/images/team_logos/nfl/${starter.toLowerCase()}.png` : `https://sleepercdn.com/content/nfl/players/thumb/${starter}.jpg`}');" />
+						<div class="champPlayerName">
+							{players[starter].fn}
+						</div> 
+						<div class="champPlayerName">
+							{players[starter].ln}
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
 	</div>
 	<div class="divisions">
 		{#each divisions as division}

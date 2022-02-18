@@ -3,7 +3,7 @@
     import {xIntervalFont, xIntervalHeight, barLabelFont, labelFont} from './barChartResize';
     import {min, max} from '$lib/utils/helper';
 
-    export let graphsObj, curSort, curGraph = Object.keys(graphsObj)[0], curSubType = 'Overall', curDubType = Object.keys(graphsObj[curGraph][curSubType])[0], curPosType, curTableDesc = 'lineupIQs.iq', maxWidth = 1000, allTime, selection, displayObject, displayYear, leagueManagers, allManagers;
+    export let allTime, graphsObj, curSort, curGraph = Object.keys(graphsObj)[0], curGraphKey = Object.keys(graphsObj[curGraph])[0], curGraphKey2 = Object.keys(graphsObj[curGraph][curGraphKey])[0], curGraphKey3 = !Object.keys(graphsObj[curGraph][curGraphKey]).includes('table') ? Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2])[0] : null, curGraphKey4 = !curGraphKey3 || !Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3]).includes('table') ? null : Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3])[0], maxWidth = 1000, selection, displayRecords, displayYear, leagueManagers, allManagers;
 
     const colors = [
         "#52DEE5",
@@ -20,16 +20,12 @@
         "#393D3F",
     ];
 
-    const graphKeys = Object.keys(graphsObj);
+    const mainGraphs = Object.keys(graphsObj);
 
-    $: subTypes = Object.keys(graphsObj[curGraph]);
-    $: dubTypes = Object.keys(graphsObj[curGraph][curSubType]).includes('Best') 
-                || Object.keys(graphsObj[curGraph][curSubType]).includes('Weeks') 
-                || Object.keys(graphsObj[curGraph][curSubType]).includes('Bench') 
-                || curSubType == 'Positions'
-                ? Object.keys(graphsObj[curGraph][curSubType]) : null;
-    $: posTypes = curSubType == 'Positions' ? Object.keys(graphsObj[curGraph][curSubType][curDubType]) : null;
-    $: newGraph = posTypes ? graphsObj[curGraph][curSubType][curDubType][curPosType][Object.keys(graphsObj[curGraph][curSubType][curDubType][curPosType])[0]] : dubTypes ? graphsObj[curGraph][curSubType][curDubType][Object.keys(graphsObj[curGraph][curSubType][curDubType])[0]] : graphsObj[curGraph][curSubType][curDubType];
+    $: graphKeys = Object.keys(graphsObj[curGraph]);
+    $: graphKeyTwos = Object.keys(graphsObj[curGraph][curGraphKey]);
+    $: graphKeyThrees = !graphKeyTwos.includes('table') ? Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2]) : null;
+    $: newGraph = curGraphKey4 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3][curGraphKey4] : curGraphKey3 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3] : graphsObj[curGraph][curGraphKey][curGraphKey2];
     $: yMin = newGraph.secondStats.length > 0 ? newGraph.yMin/2 : newGraph.yMin;
     $: yMax = newGraph.yMax;
     $: stats = newGraph.stats;
@@ -42,7 +38,7 @@
 
     const resortGraph = (newSort) => {
         if(curSort.sort) {
-            const newGraph = posTypes ? graphsObj[curGraph][curSubType][curDubType][curPosType][newSort] : dubTypes ? graphsObj[curGraph][curSubType][curDubType][newSort] : graphsObj[curGraph][curSubType][newSort];
+            const newGraph = curGraphKey4 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3][newSort] : curGraphKey3 ? graphsObj[curGraph][curGraphKey][curGraphKey2][newSort] : graphsObj[curGraph][curGraphKey][newSort];
             yMin = newGraph.secondStats.length > 0 ? newGraph.yMin/2 : newGraph.yMin;
             yMax = newGraph.yMax;
             stats = newGraph.stats;
@@ -53,15 +49,22 @@
     }
     $: resortGraph(curSort.sort);
 
-    const refreshStats = (selection, displayYear) => {
-        if((selection && selection != null) || (displayYear && displayYear != null)) {
+    const refreshStats = (displayRecords, displayYear) => {
+        if(selection || displayYear) {
 
             const processRefresh = (graph) => {
-                let newStats = displayObject[selection][graph.statCat].stats;
-                let newSecondStats; 
-                if(graph.secondStatCat) {
-                    newSecondStats = displayObject[selection][graph.secondStatCat].stats;
+                let newStats;
+                if(graph.pathKey2) {
+                    if(graph.pathKey == 'acquisitions' || graph.pathKey == 'positions') {
+                        newStats = displayRecords[graph.pathKey][graph.short][graph.pathKey2][graph.statCat].stats;
+                    } else {
+                        newStats = displayRecords[graph.pathKey][graph.pathKey2][graph.statCat].stats;
+                    }
+                } else {
+                    newStats = displayRecords[graph.pathKey][graph.statCat].stats;
                 }
+                let newSecondStats; 
+                if(graph.secondStatCat) newSecondStats = displayRecords[graph.pathKey][graph.secondStatCat].stats;
                 // if yearly stats, refresh the recordManIDs
                 if(allTime == false) {
                     graph.recordManIDs = [];
@@ -75,7 +78,11 @@
                 }
                 for(let i = 0; i < graph.stats.length; i++) {
                     if(newStats.find(m => m.recordManID == graph.recordManIDs[i])) {
-                        graph.stats[i] = Math.round(newStats.find(m => m.recordManID == graph.recordManIDs[i])[graph.field]);
+                        let trueStat = newStats.find(m => m.recordManID == graph.recordManIDs[i]);
+                        for(let k = 0; k < graph.path.length; k++) {
+                            trueStat = trueStat[graph.path[k]];
+                        }
+                        graph.stats[i] = graph.negative ? -1 * Math.round(trueStat[graph.field]) : Math.round(trueStat[graph.field]);
                     } else {
                         graph.stats[i] = 0;
                     }
@@ -86,65 +93,63 @@
                 if(graph.secondStatCat) {
                     for(let i = 0; i < graph.secondStats.length; i++) {
                         if(newSecondStats.find(m => m.recordManID == graph.recordManIDs[i])) {
-                            graph.secondStats[i] = Math.round(newSecondStats.find(m => m.recordManID == graph.recordManIDs[i])[graph.secondField]);
+                            let trueStat = newSecondStats.find(m => m.recordManID == graph.recordManIDs[i]);
+                            for(let k = 0; k < graph.path.length; k++) {
+                                trueStat = trueStat[graph.path[k]];
+                            }
+                            graph.secondStats[i] = graph.negatve ? -1 * Math.round(trueStat[graph.secondField]) : Math.round(trueStat[graph.secondField]);
                         } else {
                             graph.secondStats[i] = 0;
                         }
                     }
                     graph.yMin = min(graph.secondStats, 10);
                 }
-                if(graph.yMinOverride) {
-                    graph.yMin = graph.yMinOverride;
-                }
+                if(graph.yMinOverride) graph.yMin = graph.yMinOverride;
             }
-
-            for(const graphKey in graphsObj) {
-                for(const subType in graphsObj[graphKey]) {
-                    if(subType == 'Positions' || Object.keys(graphsObj[graphKey][subType]).includes('Best') || Object.keys(graphsObj[graphKey][subType]).includes('Weeks') || Object.keys(graphsObj[graphKey][subType]).includes('Bench')) {
-                        for(const dubType in graphsObj[graphKey][subType]) {
-                            for(const graphType in graphsObj[graphKey][subType][dubType]) {
-                                if(subType == 'Positions') {
-                                    for(const type in graphsObj[graphKey][subType][dubType][graphType]) {
-                                        const graph = graphsObj[graphKey][subType][dubType][graphType][type];
-                                        processRefresh(graph);
-                                    }
+            
+            for(const mainGraph in graphsObj) {
+                for(const graphKey in graphsObj[mainGraph]) {
+                    for(const graphKey2 in graphsObj[mainGraph][graphKey]) {
+                        if(Object.keys(graphsObj[mainGraph][graphKey]).includes('table')) {
+                            if(graphKey2 == 'table') continue;
+                            processRefresh(graphsObj[mainGraph][graphKey][graphKey2]);
+                        } else {
+                            for(const graphKey3 in graphsObj[mainGraph][graphKey][graphKey2]) {
+                                if(Object.keys(graphsObj[mainGraph][graphKey][graphKey2]).includes('table')) {
+                                    if(graphKey3 == 'table') continue;
+                                    processRefresh(graphsObj[mainGraph][graphKey][graphKey2][graphKey3]);
                                 } else {
-                                    const graph = graphsObj[graphKey][subType][dubType][graphType];
-                                    processRefresh(graph);
+                                    for(const graphKey4 in graphsObj[mainGraph][graphKey][graphKey2][graphKey3]) {
+                                        if(graphKey4 == 'table') continue;
+                                        processRefresh(graphsObj[mainGraph][graphKey][graphKey2][graphKey3][graphKey4]);
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        for(const graphType in graphsObj[graphKey][subType]) {
-                            const graph = graphsObj[graphKey][subType][graphType];
-                            processRefresh(graph);
                         }
                     }
                 }
             }
 
-            subTypes = Object.keys(graphsObj[curGraph]);
-            dubTypes = Object.keys(graphsObj[curGraph][curSubType]).includes('Best') 
-                    || Object.keys(graphsObj[curGraph][curSubType]).includes('Weeks') 
-                    || Object.keys(graphsObj[curGraph][curSubType]).includes('Bench') 
-                    || curSubType == 'Positions'
-                    ? Object.keys(graphsObj[curGraph][curSubType]) : null;
-            curSubType = 'Overall';
-            curDubType = Object.keys(graphsObj[curGraph][curSubType])[0];
-            posTypes = curSubType == 'Positions' ? Object.keys(graphsObj[curGraph][curSubType][curDubType]) : null;
-            curPosType = posTypes ? posTypes[0] : null;
+            graphKeys = Object.keys(graphsObj[curGraph]);
+            curGraphKey = graphKeys[0];
+            graphKeyTwos = Object.keys(graphsObj[curGraph][curGraphKey]);
+            curGraphKey2 = graphKeyTwos[0];
+            graphKeyThrees = !graphKeyTwos.includes('table') ? Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2]) : null;
+            curGraphKey3 = graphKeyThrees ? graphKeyThrees[0] : null;
+            curGraphKey4 = !curGraphKey3 || !Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3]).includes('table') ? null : Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3])[0];
 
-            stats = graphsObj[curGraph][curSubType][curDubType].stats;
-            secondStats = graphsObj[curGraph][curSubType][curDubType].secondStats
-            yMin = graphsObj[curGraph][curSubType][curDubType].secondStats.length > 0 ? graphsObj[curGraph][curSubType][curDubType].yMin/2 : graphsObj[curGraph][curSubType][curDubType].yMin;
-            yMax = graphsObj[curGraph][curSubType][curDubType].yMax;
-            recordManIDs = graphsObj[curGraph][curSubType][curDubType].recordManIDs;
-            managers = graphsObj[curGraph][curSubType][curDubType].managers;
-            classes = graphsObj[curGraph][curSubType][curDubType].classes;
+            newGraph = curGraphKey4 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3][curGraphKey4] : curGraphKey3 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3] : graphsObj[curGraph][curGraphKey][curGraphKey2];
+            stats = newGraph.stats;
+            secondStats = newGraph.secondStats
+            yMin = newGraph.secondStats.length > 0 ? newGraph.yMin/2 : newGraph.yMin;
+            yMax = newGraph.yMax;
+            recordManIDs = newGraph.recordManIDs;
+            managers = newGraph.managers;
+            classes = newGraph.classes;
             
         }
     }
-    $: refreshStats(selection, displayYear);
+    $: refreshStats(displayRecords, displayYear);
 
 
     $: interval = (yMax - yMin) / 4;
@@ -215,12 +220,12 @@
         } else {
             classStats = null;
             legendKeys = null;
-            yMin = dubTypes || !curSort.sort ? graphsObj[curGraph][curSubType][curDubType].yMin : graphsObj[curGraph][curSubType][curSort.sort].yMin;
-            yMax = dubTypes || !curSort.sort ? graphsObj[curGraph][curSubType][curDubType].yMax : graphsObj[curGraph][curSubType][curSort.sort].yMax;
+            yMin = graphKeyTwos || !curSort.sort ? graphsObj[curGraph][curGraphKey][curGraphKey2].yMin : graphsObj[curGraph][curGraphKey][curSort.sort].yMin;
+            yMax = graphKeyTwos || !curSort.sort ? graphsObj[curGraph][curGraphKey][curGraphKey2].yMax : graphsObj[curGraph][curGraphKey][curSort.sort].yMax;
         }
         
-        curSubType = 'Overall';
-        curDubType = dubTypes || !curSort.sort ? curDubType : curSort.sort;
+        curGraphKey = Object.keys(graphsObj[curGraph])[0];
+        curGraphKey2 = Object.keys(graphsObj[curGraph][curGraphKey])[0];
         interval = (yMax - yMin) / 4;
         yScales = [
             yMin,
@@ -232,50 +237,44 @@
     }
     $: changeClass(curClass);
 
-    let theType, whatType;
-    const changeType = (theType, whatType, curGraph) => {
-
-        if(curGraph != oldGraph) {
-            curSubType = 'Overall';
-            curDubType = Object.keys(graphsObj[curGraph][curSubType])[0];
-            curPosType = posTypes ? posTypes[0] : null;
-            oldGraph = curGraph;
-            return;
-        }
-
-        if(whatType == 'dub') {
-            curDubType = theType;
-        } else if(whatType == 'sub') {
-            curSubType = theType;
-        
-            dubTypes = Object.keys(graphsObj[curGraph][curSubType]).includes('Best') 
-                    || Object.keys(graphsObj[curGraph][curSubType]).includes('Weeks') 
-                    || Object.keys(graphsObj[curGraph][curSubType]).includes('Bench') 
-                    || curSubType == 'Positions'
-                    ? Object.keys(graphsObj[curGraph][curSubType]) : null;
-            curDubType = Object.keys(graphsObj[curGraph][curSubType])[0];
-            posTypes = curSubType == 'Positions' ? Object.keys(graphsObj[curGraph][curSubType][curDubType]) : null;
-            curPosType = posTypes ? posTypes[0] : null;
-        }else if(whatType == 'pos') {
-            curPosType = theType;
-        }
-   
+    let newKey, whatKey;
+    const changeType = (newKey, whatKey, curGraph) => {
+        if(curGraph == 'powerRankings') return;
         let newGraph;
-        if(posTypes) {
-            newGraph = graphsObj[curGraph][curSubType][curDubType][curPosType][Object.keys(graphsObj[curGraph][curSubType][curDubType][curPosType])[0]];
-        } else if(dubTypes) {
-            newGraph = graphsObj[curGraph][curSubType][curDubType][Object.keys(graphsObj[curGraph][curSubType][curDubType])[0]];
+        if(curGraph != oldGraph) {
+            curGraphKey = Object.keys(graphsObj[curGraph])[0];
+            curGraphKey2 = Object.keys(graphsObj[curGraph][curGraphKey])[0];
+            curGraphKey3 = !Object.keys(graphsObj[curGraph][curGraphKey]).includes('table') ? Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2])[0] : null;
+            curGraphKey4 = !curGraphKey3 || !Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3]).includes('table') ? null : Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3])[0];
+            oldGraph = curGraph;
         } else {
-            newGraph = graphsObj[curGraph][curSubType][curDubType];
+            if(whatKey == 3) {
+                curGraphKey3 = newKey;
+            } else {
+                if(whatKey == 2) {
+                    curGraphKey2 = newKey;
+                } else if(whatKey == 1) {
+                    if(!graphsObj[curGraph][newKey][curGraphKey2]) {
+                        graphKeyTwos = Object.keys(graphsObj[curGraph][newKey]);
+                        curGraphKey2 = Object.keys(graphsObj[curGraph][newKey])[0];
+                    }
+                    curGraphKey = newKey;
+                } 
+                if(!graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3]) {
+                    graphKeyThrees = !graphKeyTwos.includes('table') ? Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2]) : null;
+                    curGraphKey3 = graphKeyThrees ? graphKeyThrees[0] : null;
+                }
+            }
+            curGraphKey4 = !curGraphKey3 || !Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3]).includes('table') ? null : Object.keys(graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3])[0];
         }
 
+        newGraph = curGraphKey4 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3][curGraphKey4] : curGraphKey3 ? graphsObj[curGraph][curGraphKey][curGraphKey2][curGraphKey3] : graphsObj[curGraph][curGraphKey][curGraphKey2];
         yMin = newGraph.secondStats.length > 0 ? newGraph.yMin/2 : newGraph.yMin;
         yMax = newGraph.yMax;
         stats = newGraph.stats;
         secondStats = newGraph.secondStats;
         labels = newGraph.labels;
         header = newGraph.header;
-
         interval = (yMax - yMin) / 4;
         yScales = [
             yMin,
@@ -286,7 +285,7 @@
         ];
 
     }
-    $: changeType(theType, whatType, curGraph);
+    $: changeType(newKey, whatKey, curGraph);
     
     let innerWidth;
 
@@ -475,11 +474,12 @@
 </style>
 <!-- (stats[ix] - yMin) / (yMax - yMin == 0 ? 1 : (yMax - yMin)) * 100  -->
 <h6>{header}</h6>
-<div class="chartWrapper" style="width: {width}px; height: {width * .625}px">
+<div class="chartWrapper" style="width: {width}px; height: {width * .7}px">
     <div class="barChart" >
         <div class="barChartInner" style="width: {width * .85}px; height: {width * .7 * .66}px" bind:this={el}>
             <!-- x Axis label and intervals -->
             {#if classes && curClass != 0}
+                <!-- Class View -->
                 {#each classStats.stats as subStats, ix}
                     {#each subStats as stat, iv}
                         <div class="bar" style="background-color: {classStats.colors[classStats.keys[iv]]}; width: {chartWidthInterval * 0.8}px; left: {chartWidthInterval * ix + (chartWidthInterval / 2)}px; height: {classStats.heights[ix][iv]}%; z-index: {classStats.heights[ix].length - iv};">
@@ -488,13 +488,15 @@
                     {/each}
                 {/each}
             {:else}
+                <!-- Standard Graph Bars -->
                 {#each stats as stat, ix}
-                    <div class="bar{secondStats.length == 0  ? '' : curTableDesc == `${graphsObj[curGraph][curSubType][curDubType].statCat}.${graphsObj[curGraph][curSubType][curDubType].field}` ? '' : ' opacity'}" style="background-color: {colors[(recordManIDs[ix]-1) % 12]}; width: {chartWidthInterval * 0.8}px; left: {chartWidthInterval * ix + (chartWidthInterval / 2)}px; height: {(stat - yMin) / (yMax - yMin == 0 ? 1 : (yMax - yMin)) * 100}%;">
+                    <div class="bar" style="background-color: {colors[(recordManIDs[ix]-1) % 12]}; width: {chartWidthInterval * 0.8}px; left: {chartWidthInterval * ix + (chartWidthInterval / 2)}px; height: {(stat - yMin) / (yMax - yMin == 0 ? 1 : (yMax - yMin)) * 100}%;">
                         <span class="barLabel" style="font-size: {barLFont}em;">{stat}{labels.stat}</span>
                     </div>
                 {/each}
+                <!-- Secondary Graph Bars -->
                 {#each secondStats as stat, ix}
-                    <div class="bar{curTableDesc == `${graphsObj[curGraph][curSubType][curDubType].secondStatCat}.${graphsObj[curGraph][curSubType][curDubType].secondField}` ? '' : ' opacity'}" style="background-color: {colors[(recordManIDs[ix]-1) % 12]}; width: {chartWidthInterval * 0.8}px; left: {chartWidthInterval * ix + (chartWidthInterval / 2)}px; height: {(stat - yMin) / (yMax - yMin == 0 ? 1 : (yMax - yMin)) * 100}%;">
+                    <div class="bar" style="background-color: {colors[(recordManIDs[ix]-1) % 12]}; width: {chartWidthInterval * 0.8}px; left: {chartWidthInterval * ix + (chartWidthInterval / 2)}px; height: {(stat - yMin) / (yMax - yMin == 0 ? 1 : (yMax - yMin)) * 100}%;">
                         <span class="barLabel" style="font-size: {barLFont}em;">{stat}{labels.stat}</span>
                     </div>
                 {/each}
@@ -517,6 +519,7 @@
             <div class="classButton" style="{classes ? "bottom: -10px;" : null}">
                 {#if classes}
                     {#if curClass != 0}
+                        <!-- Class Legend -->
                         <div class="legendHolder">
                             {#each legendKeys as key}
                                 <div class="legendRow">
@@ -539,34 +542,34 @@
                     </Group>
                 {/if}
             </div>
-            <div class="subButton" style="{subTypes ? "bottom: -10px; z-index: 2;" : null}">
-                {#if subTypes}
+            <div class="subButton" style="{graphKeys ? "bottom: -10px; z-index: 2;" : null}">
+                {#if graphKeys && curGraph != 'powerRankings'}
                     <Group variant="outlined">
-                        {#each subTypes as subType}
-                            <Button class="selectionButtons" on:click={() => changeType(subType, 'sub', curGraph)} variant="{curSubType == subType ? "raised" : "outlined"}">
-                                <Label>{subType}</Label>
+                        {#each graphKeys as graphKey}
+                            <Button class="selectionButtons" on:click={() => changeType(graphKey, 1, curGraph)} variant="{curGraphKey == graphKey ? "raised" : "outlined"}">
+                                <Label>{graphKey}</Label>
                             </Button>
                         {/each}
                     </Group>
                 {/if}
             </div>
-            <div class="subButton" style="{dubTypes ? "bottom: 27px; z-index: 1;" : "bottom: -10px; z-index: 1;"}">
-                {#if dubTypes}
+            <div class="subButton" style="{graphKeyTwos ? "bottom: 27px; z-index: 1;" : "bottom: -10px; z-index: 1;"}">
+                {#if graphKeyTwos && curGraph != 'powerRankings' && !graphKeyTwos.includes('table')}
                     <Group variant="outlined">
-                        {#each dubTypes as dubType}
-                            <Button class="selectionButtons" on:click={() => changeType(dubType, 'dub', curGraph)} variant="{curDubType == dubType ? "raised" : "outlined"}">
-                                <Label>{dubType}</Label>
+                        {#each graphKeyTwos as graphKey2}
+                            <Button class="selectionButtons" on:click={() => changeType(graphKey2, 2, curGraph)} variant="{curGraphKey2 == graphKey2 ? "raised" : "outlined"}">
+                                <Label>{graphKey2}</Label>
                             </Button>
                         {/each}
                     </Group>
                 {/if}
             </div>
-            <div class="subButton" style="{posTypes ? "bottom: 64px; z-index: 1;" : "bottom: 27px; z-index: 1;"}">
-                {#if curSubType == 'Positions' && posTypes}
+            <div class="subButton" style="{graphKeyThrees ? "bottom: 64px; z-index: 1;" : "bottom: 27px; z-index: 1;"}">
+                {#if curGraphKey4 && !graphKeyThrees.includes('table')}
                     <Group variant="outlined">
-                        {#each posTypes as posType}
-                            <Button class="selectionButtons" on:click={() => changeType(posType, 'pos', curGraph)} variant="{curPosType == posType ? "raised" : "outlined"}">
-                                <Label>{posType}</Label>
+                        {#each graphKeyThrees as graphKey3}
+                            <Button class="selectionButtons" on:click={() => changeType(graphKey3, 3, curGraph)} variant="{curGraphKey3 == graphKey3 ? "raised" : "outlined"}">
+                                <Label>{graphKey3}</Label>
                             </Button>
                         {/each}
                     </Group>
@@ -581,10 +584,10 @@
     </div>
 </div>
 
-{#if graphKeys.length > 1}
+{#if mainGraphs.length > 1}
     <div class="buttonHolderG">
         <Group variant="outlined">
-            {#each graphKeys as graph}
+            {#each mainGraphs as graph}
                 <Button class="selectionButtons" on:click={() => curGraph = graph} variant="{curGraph == graph ? "raised" : "outlined"}">
                     <Label>{graph}</Label>
                 </Button>

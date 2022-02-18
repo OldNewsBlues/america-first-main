@@ -12,7 +12,7 @@ import { getUpcomingDraft, getPreviousDrafts } from './helperFunctions/leagueDra
 import { getLeagueRecords } from './helperFunctions/leagueRecords'
 import { getManagerRecords } from './helperFunctions/managerRecords'
 import { getAwards } from './helperFunctions/leagueAwards'
-import { cleanName, round, min, max, generateGraph, gotoManager, getAuthor, parseDate, getAvatar } from './helperFunctions/universalFunctions';
+import { cleanName, round, min, max, generateGraph, gotoManager, getAuthor, parseDate, getAvatar, capitalizeFirstLetter } from './helperFunctions/universalFunctions';
 import { predictScores, getStarterPositions } from './helperFunctions/predictOptimalScore';
 import { getBrackets } from './helperFunctions/leagueBrackets';
 import { getBlogPosts } from './helperFunctions/getBlogPosts';
@@ -76,6 +76,7 @@ export {
     getAuthor,
     parseDate,
     getAvatar,
+    capitalizeFirstLetter,
     getPositionTable,
     getTeamTable,
     nflPlayerInfo,

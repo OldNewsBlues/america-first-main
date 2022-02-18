@@ -8,10 +8,7 @@
 	const numTraders = transaction.type == 'trade' ? transaction.rosters.length : 0;
 	const traders = transaction.type == 'trade' ? transaction.rosters : null;
 
-	let failedBids;
-	if(transaction.failedAdds) {
-		failedBids = transaction.failedAdds.sort((a, b) => b.bid - a.bid);
-	}
+	let failedBids = transaction.failedAdds ? transaction.failedAdds.sort((a, b) => b.bid - a.bid) : null;
 
 	let selected = "0px";
 	const toggleSelected = () => {

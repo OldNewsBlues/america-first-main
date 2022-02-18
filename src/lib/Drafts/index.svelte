@@ -1,8 +1,11 @@
 <script>
 	import LinearProgress from '@smui/linear-progress';
     import Draft from './Draft.svelte'; 
+	import Button, { Label } from '@smui/button';
 
-    export let upcomingDraftData, previousDraftsData;
+    export let upcomingDraftData, previousDraftsData, records;
+
+	let expanded = false;
 </script>
 
 <style>
@@ -19,7 +22,15 @@
 
     h6 {
         text-align: center;
+		font-size: 2em;
     }
+
+	.expandButton {
+		width: 100%;
+		display: inline-flex;
+		justify-content: center;
+	}
+
 </style>
 
 
@@ -46,14 +57,19 @@
 		<br />
 		<LinearProgress indeterminate />
 	</div>
-{:then previousDrafts }
+{:then previousDrafts}
 	<!-- Don't display anything unless there are previous drafts -->
 	{#if previousDrafts.length}
 		<hr />
 		<h4>Previous Drafts</h4>
 		{#each previousDrafts as previousDraft}
 			<h6>{previousDraft.year} Draft</h6>
-			<Draft draftData={previousDraft} previous={true} />
+			<div class="expandButton">
+				<Button on:click={() => {expanded = !expanded}} variant="outlined">
+					<Label>{expanded ? "Hide" : "Show"} Pick Grades</Label>
+				</Button>
+			</div>
+			<Draft draftData={previousDraft} previous={true} records={records[previousDraft.year]} {expanded} />
 		{/each}
 	{/if}
 {:catch error}

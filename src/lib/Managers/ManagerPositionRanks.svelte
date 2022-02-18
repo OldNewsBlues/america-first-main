@@ -3,12 +3,12 @@
 
     const ranks = [];
 
-    for(const position in records.playerPositionRecords.league.alltime.combined.leagueAverages) {
-        const managerRank = records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.find(m => m.recordManID == recordManID);
+    for(const position in records.recordArrays.league.alltime.combined.positions.leagueAverages) {
+        const managerRank = records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.find(m => m.recordManID == recordManID);
         ranks.push({
             pos: position,
-            rank: records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.indexOf(managerRank) + 1,
-            tot: records.playerPositionRecords.league.alltime.combined.leagueAverages[position].managerAverages.length,
+            rank: records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.indexOf(managerRank) + 1,
+            tot: records.recordArrays.league.alltime.combined.positions.leagueAverages[position].managerAverages.length,
         })
     }
 

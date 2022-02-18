@@ -14,96 +14,78 @@
     import ManagerRecords from './ManagerRecords.svelte';
     import ManagerPositionRanks from './ManagerPositionRanks.svelte';
 
-    export let manager, managers, rostersData, users, rosterPositions, transactions, currentManagers, prevManagers, awards, records, managerRecords;
+    export let manager, managers, rostersData, users, rosterPositions, transactions, currentManagers, prevManagers, awards, records;
 
     let showRoster = true;
     let viewManager = managers[manager];
     let recordManID = viewManager.managerID;
 
-    let profilePic = viewManager.photo;
-    // default profile picture
-    if(profilePic == '/managers/name.jpg') {
-        profilePic = '/managers/profile-empty-gray.png'
-    }
+    let profilePic = viewManager.photo == '/managers/name.jpg' ? '/managers/profile-empty-gray.png' : viewManager.photo;
 
     let firstYear = viewManager.yearsactive[0];
     let inactiveLastYear, inactiveLastManaged;
     if(viewManager.status == "inactive") {
         showRoster = false;
         inactiveLastYear = viewManager.yearsactive[viewManager.yearsactive.length - 1];
-        inactiveLastManaged = records.leagueRosterRecords[recordManID].manager;
+        inactiveLastManaged = records.allManagers[recordManID];
     }
 
     let teamTransactions = transactions.filter(t => t.rosters.indexOf(viewManager.roster) > -1 && t.recordManIDs.includes(recordManID));
 
     let startersAndReserve = rostersData.startersAndReserve;
     let rosters = rostersData.rosters;
-
     let rosterArrNum = viewManager.roster-1;
-
     let roster = rosters[rosterArrNum];  
-
     let user = users[roster.owner_id];
 
-    let players, playersInfo, positionsInfo, teamsInfo, currentYear, nflStated, leagueDatum, standings;
+    let players, playersInfo, positionsInfo, teamsInfo, nflStated, leagueDatum, standings;
     let loading = true;
     let curSeason = leagueID;
     let seasons = [];
+    const currentYear = records.currentYear;
 
-    for(const year in records.leagueRosterRecords[recordManID].years) {
-        const season = records.leagueRosterRecords[recordManID].years[year];
+    for(const year in records.recordArrays.league.years) {
+        if(!records.recordArrays.league.years[year].regular.managerBests.winRecords.find(m => m.recordManID == recordManID)) continue;
+        const season = records.recordArrays.league.years[year].regular.managerBests.winRecords.find(m => m.recordManID == recordManID);
         
-        if(!currentYear) {
-            currentYear = season.year;
-        }
-
-        let seasonEntry = {
+        seasons.push({
             year: season.year,
-            wins: season.wins,
-            losses: season.losses,
-            ties: season.ties,
-            fpts: season.fpts,
-            fptsAgainst: season.fptsAgainst,
-            fptspg: season.fptspg,
+            wins: season.outcomes.match.W,
+            losses: season.outcomes.match.L,
+            ties: season.outcomes.match.T,
+            fpts: season.fpts.starters.real,
+            fptsAgainst: season.fpts.opp.real,
+            fptspg: season.fpts.starters.realPPG,
             manager: season.manager,
             regSeasonRank: 0,
             regSeasonRankSuper: null,
             finalRank: null,
             finalRankSuper: null,
-            showTies: false,
-        }
-        if(season.ties > 0) {
-            seasonEntry.showTies = true;
-        } else {
-            seasonEntry.showTies = false;
-        }
-        seasons.push(seasonEntry);
+            showTies: season.outcomes.match.T > 0 ? true : false,
+        });
     }
 
-    let managerKeys = {};
     for(const key in seasons) {
         const season = seasons[key];
-        const sortOrder = ["fptsAgainst", "fpts", "ties", "wins"];
-        let playerSeasons = [];
-        let yearManagers = managers.filter(m => m.yearsactive.includes(season.year));
+        const sortOrder = ['fptsAgainst', 'fpts', 'ties', 'wins'];
+        const playerSeasons = [];
+        const yearManagers = managers.filter(m => m.yearsactive.includes(season.year));
 
-        for(const yearManager in yearManagers) {
-            const yearRecordManID = yearManagers[yearManager].managerID;
-            if(!managerKeys[yearRecordManID] && season.year == yearManagers[yearManager].yearsactive[yearManagers[yearManager].yearsactive.length - 1]) {
-                managerKeys[yearRecordManID] = 0;
-            } else {
-                managerKeys[yearRecordManID] = yearManagers[yearManager].yearsactive[yearManagers[yearManager].yearsactive.length - 1] - season.year;
-            }
-
-            playerSeasons.push(records.leagueRosterRecords[yearRecordManID].years[managerKeys[yearRecordManID]]);
-            managerKeys[yearRecordManID]++;
+        for(const yearManager of yearManagers) {
+            const yearRecordManID = yearManager.managerID;
+            const playerSeason = records.recordArrays.league.years[season.year].regular.managerBests.winRecords.find(m => m.recordManID == yearRecordManID);
+            playerSeasons.push({
+                recordManID: yearRecordManID,
+                wins: playerSeason.outcomes.match.W,
+                ties: playerSeason.outcomes.match.T,
+                fpts: playerSeason.fpts.starters.real,
+                fptsAgainst: playerSeason.fpts.opp.real,
+            });
         }
 
         const calculateRank = (playerSeasons, sortOrder, recordManID) => {
             for(const sortType of sortOrder) {
-                if(!playerSeasons[0][sortType] && playerSeasons[0][sortType] != 0) {
-                    continue;
-                }
+                // if(!playerSeasons[sortType] && playerSeasons[sortType] != 0) continue;
                 playerSeasons = [...playerSeasons].sort((a,b) => b[sortType] - a[sortType]);
             }
             let regSeasonRank = playerSeasons.indexOf(playerSeasons.find(p => p.recordManID == recordManID)) + 1;
@@ -149,60 +131,46 @@
         season.regSeasonRankSuper = regSeasonRankSuper;
     }
 
-    // Overall Win - Loss Record
-    let recordHistory = {
-        wins: records.leagueRecordArrays.combined.managerBests.winRecords.find(m => m.recordManID == recordManID).wins,
-        losses: records.leagueRecordArrays.combined.managerBests.winRecords.find(m => m.recordManID == recordManID).losses,
-        ties: records.leagueRecordArrays.combined.managerBests.winRecords.find(m => m.recordManID == recordManID).ties,
-        winPerc: records.leagueRecordArrays.combined.managerBests.winRecords.find(m => m.recordManID == recordManID).winPerc,
-        showTies: false,
+    // Win - Loss Record
+    const recordsObj = records.recordArrays.league.alltime.combined.managerBests.winRecords.find(m => m.recordManID == recordManID);
+    const recordHistory = {
+        wins: recordsObj.outcomes.match.W,
+        losses: recordsObj.outcomes.match.L,
+        ties: recordsObj.outcomes.match.T,
+        winPerc: recordsObj.outcomes.match.perc,
+        showTies: recordsObj.outcomes.match.T > 0 ? true : false,
     }
-    if(recordHistory.ties > 0) {
-        recordHistory.showTies = true;
-    } else {
-        recordHistory.showTies = false;
-    }
-    // Overall EPE Win - Loss Record
-    let epeHistory = {
-        wins: records.leagueRecordArrays.combined.managerBests.epeRecords.find(m => m.recordManID == recordManID).epeWins,
-        losses: records.leagueRecordArrays.combined.managerBests.epeRecords.find(m => m.recordManID == recordManID).epeLosses,
-        ties: records.leagueRecordArrays.combined.managerBests.epeRecords.find(m => m.recordManID == recordManID).epeTies,
-        epePerc: records.leagueRecordArrays.combined.managerBests.epeRecords.find(m => m.recordManID == recordManID).epePerc,
-        showTies: false,
-    }
-    if(epeHistory.ties > 0) {
-        epeHistory.showTies = true;
-    } else {
-        epeHistory.showTies = false;
+    // EPE Win - Loss Record
+    const epeHistory = {
+        wins: recordsObj.outcomes.EPE.W,
+        losses: recordsObj.outcomes.EPE.L,
+        ties: recordsObj.outcomes.EPE.T,
+        epePerc: recordsObj.outcomes.EPE.perc,
+        showTies: recordsObj.outcomes.EPE.T > 0 ? true : false,
     }
     // FPTS history
-    let fptsHistory = {
-        fpts: records.leagueRecordArrays.combined.managerBests.cumulativePoints.find(m => m.recordManID == recordManID).fpts,
-        fptsAgainst: records.leagueRecordArrays.combined.managerBests.cumulativePoints.find(m => m.recordManID == recordManID).fptsAgainst,
-        fptspg: records.leagueRecordArrays.combined.managerBests.cumulativePoints.find(m => m.recordManID == recordManID).fptspg,
+    const fptsHistory = {
+        fpts: recordsObj.fpts.starters.real,
+        fptsAgainst: recordsObj.fpts.opp.real,
+        fptsPoss: recordsObj.fpts.starters.poss,
+        iq: recordsObj.iq,
+        fptspg: recordsObj.fpts.starters.realPPG,
     }
     // Median Win - Loss Record
-    let medianHistory = {
-        wins: records.leagueRecordArrays.combined.managerBests.medianRecords.find(m => m.recordManID == recordManID).weekWinners,
-        losses: records.leagueRecordArrays.combined.managerBests.medianRecords.find(m => m.recordManID == recordManID).weekLosers,
-        ties: records.leagueRecordArrays.combined.managerBests.medianRecords.find(m => m.recordManID == recordManID).weekTies,
-        medianPerc: records.leagueRecordArrays.combined.managerBests.medianRecords.find(m => m.recordManID == recordManID).medianPerc,
-        topScores: records.leagueRecordArrays.combined.managerBests.medianRecords.find(m => m.recordManID == recordManID).topScores,
-        bottomScores: records.leagueRecordArrays.combined.managerBests.medianRecords.find(m => m.recordManID == recordManID).bottomScores,
-        showTies: false,
-    }
-    if(medianHistory.ties > 0) {
-        medianHistory.showTies = true;
-    } else {
-        medianHistory.showTies = false;
+    const medianHistory = {
+        wins: recordsObj.outcomes.median.W,
+        losses: recordsObj.outcomes.median.L,
+        ties: recordsObj.outcomes.median.T,
+        medianPerc: recordsObj.outcomes.median.perc,
+        topScores: recordsObj.outcomes.EPE.top,
+        bottomScores: recordsObj.outcomes.EPE.bottom,
+        showTies: recordsObj.outcomes.median.T > 0 ? true : false,
     }
     // Championship icons
     let shipsTrophies = [];
     let championships = 0;
     for(const podium of awards.podiums) {
-        if(podium.champion.recordManID == recordManID) {
-            championships++;
-        }
+        if(podium.champion.recordManID == recordManID) championships++;
     }
     if(championships > 0) {
         for(let i = 0; i < championships; i++) {
@@ -250,11 +218,9 @@
 
         let finalStandings = Object.keys(standingsObject).map((key) => standingsObject[key]);
 
-        const sortOrder = ["fptsAgainst", "fpts", "ties", "wins"];
+        const sortOrder = ['fptsAgainst', 'fpts', 'ties', 'wins'];
         for(const sortType of sortOrder) {
-            if(!finalStandings[0][sortType] && finalStandings[0][sortType] != 0) {
-                continue;
-            }
+            if(!finalStandings[0][sortType] && finalStandings[0][sortType] != 0) continue;
             finalStandings = [...finalStandings].sort((a,b) => b[sortType] - a[sortType]);
         }
 
@@ -277,11 +243,7 @@
             wins = standings.standingsInfo[viewManager.roster].wins;
             losses = standings.standingsInfo[viewManager.roster].losses;
             ties = standings.standingsInfo[viewManager.roster].ties;
-            if(ties == 0) {
-                showTies = false;
-            } else {
-                showTies = true;
-            }
+            showTies = ties == 0 ? false : true;
         }
 
         return {wins, losses, ties, showTies, showRecord, standingsRank, rankSuper};
@@ -298,17 +260,9 @@
 
         startersAndReserve = rostersData.startersAndReserve;
         rosters = rostersData.rosters;
-
-        if(viewManager.status == "active") {
-            showRecord = true;
-        } else {
-            showRecord = false;
-        }
-
+        showRecord = viewManager.status == 'active' ? true : false;
         rosterArrNum = viewManager.roster-1;
-
         roster = rosters[rosterArrNum];
-
         user = users[roster.owner_id];
         goto(`/managers?manager=${manager}`, {noscroll})
     }
@@ -855,14 +809,14 @@
     <div class="managerConstrained">
         {#if !loading}
             <!-- Favorite player -->
-            <ManagerFantasyInfo {viewManager} {players} {managerRecords} {records} />
+            <ManagerFantasyInfo {viewManager} {players} {records} />
         {/if}
 
         <ManagerPositionRanks {recordManID} {records} />
 
         <ManagerAwards {recordManID} {awards} {records} {roster} />
 
-        <ManagerRecords {recordManID} {firstYear} {currentYear} {managerRecords} {records} />
+        <ManagerRecords {recordManID} {firstYear} {currentYear} {records} />
     </div>
 
     <div class="managerConstrained" style="min-height: auto">

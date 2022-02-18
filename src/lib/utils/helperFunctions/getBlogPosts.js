@@ -2,9 +2,7 @@ import { get } from 'svelte/store';
 import {posts} from '$lib/stores';
 
 export const getBlogPosts = async (bypass = false) => {
-	if(get(posts)[0] && !bypass) {
-		return {posts: get(posts), fresh: false};
-	}
+	if(get(posts)[0] && !bypass) return {posts: get(posts), fresh: false};
 	const res = await fetch('/api/getBlogPosts', {compress: true})
 	const newPosts = await res.json();
 

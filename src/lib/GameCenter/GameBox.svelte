@@ -1,6 +1,21 @@
 <script>
     import {round, getStarterPositions} from '$lib/utils/helper'; 
     import LinearProgress from '@smui/linear-progress';
+    import Icon from 'mdi-svelte';
+    // import {mdiWeatherPouring,
+    //         mdiWeatherCloudy,
+    //         mdiWeatherSunny, 
+    //         mdiWeatherPartlyCloudy, 
+    //         mdiWeatherRainy,
+    //         mdiWeatherPartlyRainy,
+    //         mdiWeatherPartlySnowy,
+    //         mdiWeatherSnowy,
+    //         mdiWeatherPartlySnowyRainy,
+    //         mdiWeatherNight,
+    //         mdiWeatherLightning,
+    //         mdiWeatherFog,
+    //         mdiWeatherWindy,
+    //         } from '@mdi-js';
 
     export let nflTeams, nflMatchups, weekSelection, yearSelection, currentYear, yearLeagueData, playersInfo, nflPlayerInfo, fantasyStarters, positionLeaders, managerInfo, weekMatchups, standingsData, matchSelection, managerSelection, fantasyProducts, gameSelection = nflMatchups[0][0].gameID, viewPlayerID, showGameBox, showMatchBox, leaderBoardInfo, newLoading;
     
@@ -30,7 +45,7 @@
             for(const starter of starters) {
                 const starterInfo = nflPlayerInfo[starter];
                 if(starter != '0') {
-                    const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[starter].wi[yearSelection][1] && playersInfo.players[starter].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][1].t).espnAbbreviation : starterInfo.espn.t[yearSelection][0];
+                    const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 && starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection) ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[starter].wi[yearSelection][1] && playersInfo.players[starter].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][1].t).espnAbbreviation : starterInfo ? starterInfo.espn.t[yearSelection][0] : 'NONE';
                     const starterEntry = {
                         playerID: starter,
                         fpts: fantasyStarters[recordManID].startersPoints[starters.indexOf(starter)],
@@ -57,21 +72,11 @@
     let positionRankArrays = {};
     const getPositionRankArrays = (positionLeaders) => {
         positionRankArrays = {}; 
-        if(positions.includes('FLEX')) {
-            positionRankArrays['FLEX'] = [];
-        }
-        if(positions.includes('WRRB_FLEX')) {
-            positionRankArrays['WRRB_FLEX'] = [];
-        }
-        if(positions.includes('REC_FLEX')) {
-            positionRankArrays['REC_FLEX'] = [];
-        }
-        if(positions.includes('SUPER_FLEX')) {
-            positionRankArrays['SUPER_FLEX'] = [];
-        }
-        if(positions.includes('IDP_FLEX')) {
-            positionRankArrays['IDP_FLEX'] = [];
-        }
+        if(positions.includes('FLEX')) positionRankArrays['FLEX'] = [];
+        if(positions.includes('WRRB_FLEX')) positionRankArrays['WRRB_FLEX'] = [];
+        if(positions.includes('REC_FLEX')) positionRankArrays['REC_FLEX'] = [];
+        if(positions.includes('SUPER_FLEX')) positionRankArrays['SUPER_FLEX'] = [];
+        if(positions.includes('IDP_FLEX')) positionRankArrays['IDP_FLEX'] = [];
         
         for(const position in positionLeaders) {
             positionRankArrays[position] = positionLeaders[position];
@@ -101,21 +106,11 @@
                 }
             }
         }
-        if(positionRankArrays['FLEX']) {
-            positionRankArrays['FLEX'] = positionRankArrays['FLEX'].sort((a, b) => b.fpts - a.fpts);
-        }
-        if(positionRankArrays['SUPER_FLEX']) {
-            positionRankArrays['SUPER_FLEX'] = positionRankArrays['SUPER_FLEX'].sort((a, b) => b.fpts - a.fpts);
-        }
-        if(positionRankArrays['WRRB_FLEX']) {
-            positionRankArrays['WRRB_FLEX'] = positionRankArrays['WRRB_FLEX'].sort((a, b) => b.fpts - a.fpts);
-        }
-        if(positionRankArrays['REC_FLEX']) {
-            positionRankArrays['REC_FLEX'] = positionRankArrays['REC_FLEX'].sort((a, b) => b.fpts - a.fpts);
-        }
-        if(positionRankArrays['IDP_FLEX']) {
-            positionRankArrays['IDP_FLEX'] = positionRankArrays['IDP_FLEX'].sort((a, b) => b.fpts - a.fpts);
-        }
+        if(positionRankArrays['FLEX']) positionRankArrays['FLEX'] = positionRankArrays['FLEX'].sort((a, b) => b.fpts - a.fpts);
+        if(positionRankArrays['SUPER_FLEX']) positionRankArrays['SUPER_FLEX'] = positionRankArrays['SUPER_FLEX'].sort((a, b) => b.fpts - a.fpts);
+        if(positionRankArrays['WRRB_FLEX']) positionRankArrays['WRRB_FLEX'] = positionRankArrays['WRRB_FLEX'].sort((a, b) => b.fpts - a.fpts);
+        if(positionRankArrays['REC_FLEX']) positionRankArrays['REC_FLEX'] = positionRankArrays['REC_FLEX'].sort((a, b) => b.fpts - a.fpts);
+        if(positionRankArrays['IDP_FLEX']) positionRankArrays['IDP_FLEX'] = positionRankArrays['IDP_FLEX'].sort((a, b) => b.fpts - a.fpts);
     }
     $: getPositionRankArrays(positionLeaders);
     // assign managers for selected matchID
@@ -129,7 +124,7 @@
                 for(const starter of match[opponent].starters) {
                     if(starter != '0') {
                         const starterInfo = nflPlayerInfo[starter];
-                        const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[starter].wi[yearSelection][1] && playersInfo.players[starter].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][1].t).espnAbbreviation : starterInfo.espn.t[yearSelection][0];
+                        const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 && starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection) ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[starter].wi[yearSelection][1] && playersInfo.players[starter].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][1].t).espnAbbreviation : starterInfo ? starterInfo.espn.t[yearSelection][0] : 'NONE';
                         const starterEntry = {
                             playerID: starter,
                             fpts: match[opponent].points[match[opponent].starters.indexOf(starter)],
@@ -149,9 +144,7 @@
 
                         projections[match[opponent].recordManID] += starterEntry.projection;
 
-                        if(!matchStarters[match[opponent].recordManID]) {
-                            matchStarters[match[opponent].recordManID] = [];
-                        }
+                        if(!matchStarters[match[opponent].recordManID]) matchStarters[match[opponent].recordManID] = [];
                         matchStarters[match[opponent].recordManID].push(starterEntry);
                     }
                 }
@@ -169,9 +162,7 @@
                             losses: standingsData.standingsInfo[key].losses,
                             showTies: false,
                         }
-                        if(records[i].ties != 0) {
-                            records[i].showTies = true;
-                        }
+                        if(records[i].ties != 0) records[i].showTies = true;
                         break;
                     }
                 }
@@ -209,13 +200,15 @@
 
     // assign teams for selected gameID
     const selectGame = (gameSelection) => {
-        let game = nflMatchups.find(m => m[0].gameID == gameSelection);
-        let home = game[0].team;
-        let away = game[1].team;
+        const game = nflMatchups.find(m => m[0].gameID == gameSelection);
+        const home = game[0].team;
+        const away = game[1].team;
+        const gameInfo = game[0].info;
+
         freshGame = true;
         viewPlayerID = 'flush';
 
-        return {home, away};
+        return {home, away, gameInfo};
     }
     $: game = selectGame(gameSelection);
 
@@ -230,9 +223,7 @@
                 positionGameStarters.positions[nflPosition] = [];
             }            
 
-            if(!positionGameStarters[gameSelection]) {
-                positionGameStarters[gameSelection] = {};
-            }
+            if(!positionGameStarters[gameSelection]) positionGameStarters[gameSelection] = {};
             if(!positionGameStarters[gameSelection][game.home.sleeperID]) {
                 positionGameStarters[gameSelection][game.home.sleeperID] = {
                     starters: [],
@@ -243,9 +234,7 @@
                     starters: [],
                 };
             }
-            if(!positionGameStarters.rowHeights[gameSelection]) {
-                positionGameStarters.rowHeights[gameSelection] = [];
-            }
+            if(!positionGameStarters.rowHeights[gameSelection]) positionGameStarters.rowHeights[gameSelection] = [];
             positionGameStarters[gameSelection][game.home.sleeperID].starters = [];
             positionGameStarters[gameSelection][game.away.sleeperID].starters = [];
             positionGameStarters.rowHeights[gameSelection] = [];
@@ -255,7 +244,7 @@
                 for(const starter of starters) {
                     const starterInfo = nflPlayerInfo[starter];
                     if(starter != '0') {
-                        const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[starter].wi[yearSelection][1] && playersInfo.players[starter].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][1].t).espnAbbreviation : starterInfo.espn.t[yearSelection][0];
+                        const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 && starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection) ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[starter].wi[yearSelection][1] && playersInfo.players[starter].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][1].t).espnAbbreviation : starterInfo ? starterInfo.espn.t[yearSelection][0] : 'NONE';
                         if(nflTeams.find(t => t.espnAbbreviation == team).sleeperID == game.home.sleeperID || nflTeams.find(t => t.espnAbbreviation == team).sleeperID == game.away.sleeperID) {
                             const starterEntry = {
                                 playerID: starter,
@@ -273,13 +262,11 @@
                                 teamColor: `background-color: #${nflTeams.find(t => t.espnAbbreviation == team).color}6b`,
                                 teamAltColor: `background-color: #${nflTeams.find(t => t.espnAbbreviation == team).alternateColor}52`,
                             }
-                            if(!gameStarters[recordManID]) {
-                                gameStarters[recordManID] = [];
-                            }
+
+                            if(!gameStarters[recordManID]) gameStarters[recordManID] = [];
                             gameStarters[recordManID].push(starterEntry);
-                            if(!positionGameStarters.positions[starterEntry.pos].includes(starterEntry)) {
-                                positionGameStarters.positions[starterEntry.pos].push(starterEntry);
-                            }
+
+                            if(!positionGameStarters.positions[starterEntry.pos].includes(starterEntry)) positionGameStarters.positions[starterEntry.pos].push(starterEntry);
                         }
                     }
                 }
@@ -323,7 +310,7 @@
             newViewPlayer = null;
             newViewPlayerRank = null;
         } else {
-            if(showGameBox == true) {
+            if(showGameBox) {
                 for(const recordManID in gameStarters) {
                     if(gameStarters[recordManID].find(s => s.playerID == viewPlayerID)) {
                         newViewPlayer = gameStarters[recordManID].find(s => s.playerID == viewPlayerID);
@@ -341,7 +328,7 @@
                         break;
                     }
                 }
-            } else if(showMatchBox == true) {
+            } else if(showMatchBox) {
                 for(const recordManID in fantasyStarters) {
                     if(allStarters[recordManID].find(s => s.playerID == viewPlayerID)) {
                         newViewPlayer = allStarters[recordManID].find(s => s.playerID == viewPlayerID);
@@ -401,12 +388,12 @@
 
     const getPositionLeaders = (positionLB, gameStarters, match) => {
         let positionLeaderboard = [];
-        if(freshGame == false && freshManager == false) {
+        if(!freshGame && !freshManager) {
             positionLeaderboard = positionRankArrays[positionLB];
-        } else if(freshGame == true && freshManager == false) {
-            if(showGameBox == true) {
+        } else if(freshGame && !freshManager) {
+            if(showGameBox) {
                 positionLB = gameStarters;
-            } else if(showMatchBox == true) {
+            } else if(showMatchBox) {
                 positionLB = match.matchStarters;
             }
             for(const recordManID in positionLB) {
@@ -416,7 +403,7 @@
             }
             positionLeaderboard = positionLeaderboard.sort((a, b) => b.fpts - a.fpts);
             freshGame = false;
-        } else if(freshManager == true) {
+        } else if(freshManager) {
             for(const starter of positionLB) {
                 positionLeaderboard.push(starter);
             }
@@ -435,13 +422,9 @@
     $: positionLeaderboard = getPositionLeaders(positionLB, gameStarters, match);
 
     const multiFunction = (playerID, teamID, leaderBoardType, leaderBoardSpec, recordManID) => {
-        if(playerID != null && teamID != null) {
-            if(playerID == viewPlayerID) {
-                viewPlayerID = 'flush';
-            } else {
-                viewPlayerID = playerID;
-            }
-        }
+
+        if(playerID && teamID) viewPlayerID = playerID == viewPlayerID ? 'flush' : playerID;
+
         if(leaderBoardType != null && leaderBoardSpec != null && recordManID == 0) {
             if(leaderBoardType == 'matchup') {
                 matchSelection = leaderBoardSpec;
@@ -451,15 +434,10 @@
             managerSelection = recordManID;
             viewPlayerID = null;
             changeLeaderBoard(leaderBoardType, leaderBoardSpec, recordManID);
-        } else if(recordManID != 0 && recordManID != null) {
-            if(leaderBoardType == 'matchup') {
-                matchSelection = leaderBoardSpec;
-            } 
-            if(recordManID == managerSelection) {
-                managerSelection = 0;
-            } else {
-                managerSelection = recordManID;
-            }
+        } else if(recordManID != 0 && recordManID) {
+
+            if(leaderBoardType == 'matchup') matchSelection = leaderBoardSpec;
+            managerSelection = recordManID == managerSelection ? 0 : recordManID;
             viewPlayerID = null;
             changeLeaderBoard(leaderBoardType, leaderBoardSpec, recordManID);
         }
@@ -1562,6 +1540,12 @@
     <div class="bigBoxRightWrap">
         <div class="viewPlayer">
             <div class="viewPlayerBlock">
+                <!-- {#if !viewPlayer.player}
+                    <img style="height: 40px; width:auto;" src="./dome_dark.png" alt="">
+                    <Icon path={mdiWeatherCloudy}/>
+                    {game.gameInfo.dome}
+                    {game.gameInfo.stadium}
+                {/if} -->
                 <div class="viewPlayerTop">
                     <div class="viewPlayerProfile">
                         {#if viewPlayer?.player?.pos != 'DEF'}

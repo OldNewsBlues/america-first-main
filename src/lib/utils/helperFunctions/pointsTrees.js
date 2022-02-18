@@ -1,142 +1,64 @@
-import { getManagerRecords, round, nflTeams } from '$lib/utils/helper';
+import { getLeagueRecords, round } from '$lib/utils/helper';
 
 let recordManID = 1;
 
 export const getPositionTable = async (recordManID) => {
 
-	let managerRecords = null;
+	let records, data;
+	const newRecords = await getLeagueRecords(records).catch((err) => { console.error(err); });;
+	records = newRecords;
 
-	const newRecords = await getManagerRecords(managerRecords).catch((err) => { console.error(err); });;
-	managerRecords = newRecords;
-
-
-	let playerPositionData = {};
 	let dataTree = [];
-	let data;
 
-	const getData = (managerRecords) => { 
-		if(managerRecords != null) {
-			for(const key in managerRecords.playerBook.totals.alltime[recordManID].combined) {
-				const player = managerRecords.playerBook.totals.alltime[recordManID].combined[key];
-				if(!playerPositionData[player.playerInfo.pos]) {
-					playerPositionData[player.playerInfo.pos] = {
-						position: `${player.playerInfo.pos}`,
-						players: {},
-					}
-				}
-				if(!playerPositionData[player.playerInfo.pos].players[player.playerID]) {
-					if(!player.playerInfo.pos || player.playerInfo.pos == null) {
-						playerPositionData[player.rosterSpot].players[player.playerID] = {
-							name: `${player.playerInfo.ln} DEF`,
-							started: false,
-							children: [],
-						}
-						const entry = {
-							name: `${player.playerInfo.ln} DEF`,
-							value: player.playerPoints,
-							avatar: player.playerAvatar,
-							position: !player.playerInfo.pos || player.playerInfo.pos == null ? player.rosterSpot : player.playerInfo.pos,
-							fptspg: null,
-							weeks: [],
-							id: 'player',
-						}
-						playerPositionData[player.rosterSpot].players[player.playerID].children.push(entry);
-					} else if(player.playerInfo.pos == 'DEF') {
-						playerPositionData[player.playerInfo.pos].players[player.playerID] = {
-							name: `${player.playerInfo.ln} DEF`,
-							started: false,
-							children: [],
-						}
-						const entry = {
-							name: `${player.playerInfo.ln} DEF`,
-							value: player.playerPoints,
-							avatar: player.playerAvatar,
-							position: !player.playerInfo.pos || player.playerInfo.pos == null ? player.rosterSpot : player.playerInfo.pos,
-							fptspg: null,
-							weeks: [],
-							id: 'player',
-						}
-						playerPositionData[player.playerInfo.pos].players[player.playerID].children.push(entry);
-					} else {
-						playerPositionData[player.playerInfo.pos].players[player.playerID] = {
-							name: `${player.playerInfo.fn} ${player.playerInfo.ln}`,
-							started: false,
-							children: [],
-						}
-						const entry = {
-							name: `${player.playerInfo.fn} ${player.playerInfo.ln}`,
-							value: player.playerPoints,
-							avatar: player.playerAvatar,
-							position: !player.playerInfo.pos || player.playerInfo.pos == null ? player.rosterSpot : player.playerInfo.pos,
-							fptspg: null,
-							weeks: [],
-							id: 'player',
-						}
-						playerPositionData[player.playerInfo.pos].players[player.playerID].children.push(entry);
-					}
-				} else {
-					playerPositionData[player.playerInfo.pos].players[player.playerID].children[0].value += player.playerPoints;
-				}		
-				if(player.weeksStarted > 0) {
-					playerPositionData[player.playerInfo.pos].players[player.playerID].started = true; 
-				}
-			}
-			const yearsObj = {};
-
-			for(const key in managerRecords.playerBook.combined.alltime[recordManID]) {
-				const playerWeek = managerRecords.playerBook.combined.alltime[recordManID][key];
-				if(playerWeek.benched == false) {
-					if(!yearsObj[playerWeek.playerID]) {
-						yearsObj[playerWeek.playerID] = {};
-					}
-					if(!yearsObj[playerWeek.playerID][playerWeek.year]) {
-						yearsObj[playerWeek.playerID][playerWeek.year] = {
-							fpts: managerRecords.playerBook.totals.years[playerWeek.year][recordManID].combined.find(p => p.playerID == playerWeek.playerID).playerPoints,
-							fptspg: managerRecords.playerBook.totals.years[playerWeek.year][recordManID].combined.find(p => p.playerID == playerWeek.playerID).playerPPStart,
-							weeks: [],
-						}
-					}
-					const entry = {
-						week: playerWeek.week,
-						year: playerWeek.year,
-						topStarter: playerWeek.topStarter,
-						bottomStarter: playerWeek.bottomStarter,
-						fpts: playerWeek.playerPoints,
-						rank: playerWeek.starterRank,
-						position: !playerWeek.playerInfo.pos || playerWeek.playerInfo.pos == null ? playerWeek.rosterSpot : playerWeek.playerInfo.pos,
-					}
-					yearsObj[playerWeek.playerID][playerWeek.year].weeks.push(entry);
-				}
-			}
-			for(const playerID in yearsObj) {
-				for(const year in yearsObj[playerID]) {
-					playerPositionData[yearsObj[playerID][year].weeks[0].position].players[playerID].children[0].weeks.push(yearsObj[playerID][year]);
-				}				
-			}
-			for(const position in playerPositionData) {
-				if(!dataTree.find(p => p.name == position)) {
+	const getData = (records) => { 
+		if(records) {
+			for(const position in records.recordArrays.league.alltime.combined.positions) {
+				if(!dataTree.find(d => d.name == position)) {
 					dataTree.push({
 						name: `${position}`,
 						children: [],
 					})
 				}
-				for(const player in playerPositionData[position].players) {
-					if(playerPositionData[position].players[player].started == true) {
-
-						let numberGames = 0;
-						for(const year in playerPositionData[position].players[player].children[0].weeks) {
-							numberGames += playerPositionData[position].players[player].children[0].weeks[year].weeks.length;
-						}
-						playerPositionData[position].players[player].children[0].fptspg = round(playerPositionData[position].players[player].children[0].value / numberGames);
-
-						playerPositionData[position].players[player].children[0].value = round(playerPositionData[position].players[player].children[0].value);
-						const entry = {
-							name: playerPositionData[position].players[player].name,
-							children: playerPositionData[position].players[player].children,
-							id: 'parent',
-						}
-						dataTree.find(p => p.name == position).children.push(entry);
+				for(const player of records.playerBook.careers.filter(p => p.playerInfo.pos == position && p.weeks.starters > 0 && p.recordManID == recordManID)) {
+					const parentEntry = {
+						name: player.playerInfo.pos == 'DEF' ? `${player.playerInfo.ln} DEF` : `${player.playerInfo.fn} ${player.playerInfo.ln}`,
+						children: [],
+						id: 'parent',
 					}
+					const careerEntry = {
+						name: parentEntry.name,
+						value: player.fpts.starters.real,
+						avatar: player.avatar,
+						position,
+						team: player.team,
+						fpts: player.fpts.starters,
+						years: [],
+						id: 'player',
+					}
+					const playerYears = records.playerBook.seasons.filter(y => y.playerID == player.playerID && y.weeks.starters > 0 && y.recordManID == recordManID);
+					for(const year of playerYears) {
+						const yearEntry = {
+							fpts: year.fpts.starters,
+							team: year.team,
+							rankAvg: year.starterRankAvg,
+							weeks: [],
+						}
+						for(const week of records.playerBook.weeks.filter(w => w.playerID == player.playerID && !w.benched && w.recordManID == recordManID)) {
+							yearEntry.weeks.push({
+								week: week.week,
+								year: week.year,
+								topBottom: week.topStarter ? 'top' : week.bottomStarter ? 'bottom' : null,
+								fpts: week.fpts,
+								proj: week.projFpts,
+								position,
+								team: week.team,
+								rank: week.starterRank,
+							})
+						}
+						careerEntry.years.push(yearEntry);
+					}
+					parentEntry.children.push(careerEntry);
+					dataTree.find(d => d.name == position).children.push(parentEntry);
 				}
 			}
 
@@ -146,130 +68,80 @@ export const getPositionTable = async (recordManID) => {
 			}
 		}
 	}
-	$: getData(managerRecords);
+	$: getData(records);
 
 	return data;
 }
 
 export const getTeamTable = async(recordManID) => {
 
-	let managerRecords = null;
+	let records, data;
+	const newRecords = await getLeagueRecords(records).catch((err) => { console.error(err); });;
+	records = newRecords;
 
-	const newRecords = await getManagerRecords(managerRecords).catch((err) => { console.error(err); });;
-	managerRecords = newRecords;
-
-
-	let playerTeamData = {};
 	let dataTree = [];
-	let data;
 
-	const getData = (managerRecords) => {
-		if(managerRecords != null) {
-			for(const key in managerRecords.playerBook.totals.alltime[recordManID].combined) {
-				const player = managerRecords.playerBook.totals.alltime[recordManID].combined[key];
+	const getData = (records) => {
+		if(records) {
 
-				for(const team in player.teamTotals) {
-
-					if(!playerTeamData[team]) {
-						playerTeamData[team] = {
-							team: `${team}`,
-							players: {},
-						}
-					}
-				
-					if(!playerTeamData[team].players[player.playerID]) {
-						playerTeamData[team].players[player.playerID] = {
-							name: player.playerInfo.pos == 'DEF' ? `${player.playerInfo.ln} DEF` : `${player.playerInfo.fn} ${player.playerInfo.ln}`,
+			for(const player of records.playerBook.careers.filter(p => p.weeks.starters > 0 && p.recordManID == recordManID)) {
+				for(const team in player.fpts.teams) {
+					if(!dataTree.find(d => d.name == team)) {
+						dataTree.push({
+							name: `${team}`,
 							children: [],
-						}
-						const entry = {
-							name: player.playerInfo.pos == 'DEF' ? `${player.playerInfo.ln} DEF` : `${player.playerInfo.fn} ${player.playerInfo.ln}`,
-							value: player.teamTotals[team].fpts,
-							avatar: player.playerAvatar,
-							position: !player.playerInfo.pos || player.playerInfo.pos == null ? player.rosterSpot : player.playerInfo.pos,
-							fptspg: null,
-							team: team,
-							weeks: [],
-							id: 'player',
-						}
-						playerTeamData[team].players[player.playerID].children.push(entry);
-					} else {
-						playerTeamData[team].players[player.playerID].children[0].value += player.teamTotals[team].fpts;
-					}	
-				}
-			}
-			const yearsObj = {};
-
-			for(const key in managerRecords.playerBook.combined.alltime[recordManID]) {
-				const playerWeek = managerRecords.playerBook.combined.alltime[recordManID][key];
-				if(playerWeek.benched == false) {
-					if(!yearsObj[playerWeek.playerTeam]) {
-						yearsObj[playerWeek.playerTeam] = {};
+						})
 					}
-					if(!yearsObj[playerWeek.playerTeam][playerWeek.playerID]) {
-						yearsObj[playerWeek.playerTeam][playerWeek.playerID] = {};
-					}
-					if(!yearsObj[playerWeek.playerTeam][playerWeek.playerID][playerWeek.year]) {
-						yearsObj[playerWeek.playerTeam][playerWeek.playerID][playerWeek.year] = {
-							fpts: managerRecords.playerBook.totals.years[playerWeek.year][recordManID].combined.find(p => p.playerID == playerWeek.playerID).teamTotals[playerWeek.playerTeam].fpts,
-							fptspg: managerRecords.playerBook.totals.years[playerWeek.year][recordManID].combined.find(p => p.playerID == playerWeek.playerID).teamTotals[playerWeek.playerTeam].fptspg,
-							weeks: [],
-						}
-					}
-					const entry = {
-						week: playerWeek.week,
-						year: playerWeek.year,
-						topStarter: playerWeek.topStarter,
-						bottomStarter: playerWeek.bottomStarter,
-						fpts: playerWeek.playerPoints,
-						rank: playerWeek.starterRank,
-						position: !playerWeek.playerInfo.pos || playerWeek.playerInfo.pos == null ? playerWeek.rosterSpot : playerWeek.playerInfo.pos,
-						team: playerWeek.playerTeam,
-					}
-					yearsObj[playerWeek.playerTeam][playerWeek.playerID][playerWeek.year].weeks.push(entry);
-				}
-			}
-			for(const playerTeam in yearsObj) {
-				for(const playerID in yearsObj[playerTeam]) {
-					for(const year in yearsObj[playerTeam][playerID]) {
-						playerTeamData[playerTeam].players[playerID].children[0].weeks.push(yearsObj[playerTeam][playerID][year]);
-					}	
-				}			
-			}
-			for(const team in playerTeamData) {
-				if(!dataTree.find(p => p.name == team)) {
-					dataTree.push({
-						name: `${team}`,
+					const parentEntry = {
+						name: player.playerInfo.pos == 'DEF' ? `${player.playerInfo.ln} DEF` : `${player.playerInfo.fn} ${player.playerInfo.ln}`,
 						children: [],
-					})
-				}
-				for(const player in playerTeamData[team].players) {
-
-					let numberGames = 0;
-					for(const year in playerTeamData[team].players[player].children[0].weeks) {
-						numberGames += playerTeamData[team].players[player].children[0].weeks[year].weeks.length;
-					}
-					playerTeamData[team].players[player].children[0].fptspg = round(playerTeamData[team].players[player].children[0].value / numberGames);
-					playerTeamData[team].players[player].children[0].value = round(playerTeamData[team].players[player].children[0].value);
-
-					const entry = {
-						name: playerTeamData[team].players[player].name,
-						children: playerTeamData[team].players[player].children,
-						team: team,
 						id: 'parent',
 					}
-					dataTree.find(p => p.name == team).children.push(entry);
+					const careerEntry = {
+						name: parentEntry.name,
+						value: player.fpts.teams[team].starters.real,
+						avatar: player.avatar,
+						team,
+						position: player.playerInfo.pos,
+						fpts: player.fpts.teams[team],
+						years: [],
+						id: 'player',
+					}
+					const playerYears = records.playerBook.seasons.filter(y => y.playerID == player.playerID && y.weeks.starters > 0 && y.fpts.teams[team] && y.recordManID == recordManID);
+
+					for(const year of playerYears) {
+						const yearEntry = {
+							fpts: year.fpts.teams[team],
+							rankAvg: year.starterRankAvg,
+							team,
+							weeks: [],
+						}
+						for(const week of records.playerBook.weeks.filter(w => w.playerID == player.playerID && w.team == team && !w.benched && w.recordManID == recordManID)) {
+							yearEntry.weeks.push({
+								week: week.week,
+								year: week.year,
+								topBottom: week.topStarter ? 'top' : week.bottomStarter ? 'bottom' : null,
+								fpts: week.fpts,
+								proj: week.projFpts,
+								team,
+								position: week.playerInfo.pos,
+								rank: week.starterRank,
+							})
+						}
+						careerEntry.years.push(yearEntry);
+					}
+					parentEntry.children.push(careerEntry);
+					dataTree.find(d => d.name == team).children.push(parentEntry);
 				}
 			}
 
 			data = {
 				name: 'Teams',
 				children: dataTree,
-			}
-			
+			}			
 		}
 	}
-	$: getData(managerRecords);
+	$: getData(records);
 
 	return data;
 }

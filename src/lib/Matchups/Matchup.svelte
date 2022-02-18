@@ -93,13 +93,7 @@
     let innerWidth;
 
     const calcHeight = () => {
-        let multiplier = 73;
-        if(innerWidth < 500) {
-            multiplier = 72;
-        }
-        if(innerWidth < 410) {
-            multiplier = 71;
-        }
+        let multiplier = innerWidth < 500 ? 72 : innerWidth < 410 ? 71 : 73;
         return home.starters.length * multiplier + 37;
     }
 

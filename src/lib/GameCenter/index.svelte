@@ -9,15 +9,10 @@
 
     export let nflWeek, matchupsInfo, standingsData, playersInfo, nflPlayerInfo;
 
-    let viewPlayerID;
-    let leaderBoardInfo;
     let fantasyProducts = {};
     let completeGames = [];
-
-    let gameSelection;
+    let gameSelection, matchSelection, viewPlayerID, leaderBoardInfo;
     let showGameBox = true;
-
-    let matchSelection;
     let showMatchBox = false;
 
     let managerSelection = 0;
@@ -37,28 +32,20 @@
     let currentYear = null;
 
     const year = parseInt(yearLeagueData.season);
-    if(currentYear == null) {
-        currentYear = year;
-    }
+    if(!currentYear) currentYear = year;
 
-    for(const managerID in managers) {
-		const manager = managers[managerID];
+    for(const manager of managers) {
+		if(!leagueManagers[manager.roster]) leagueManagers[manager.roster] = [];
 
-		const entryMan = {
+		leagueManagers[manager.roster].push({
 			managerID: manager.managerID,
 			rosterID: manager.roster,
 			name: manager.name,
             abbreviation: manager.abbreviation,
 			status: manager.status,
 			yearsactive: manager.yearsactive,
-		}
-
-		if(!leagueManagers[manager.roster]) {
-			leagueManagers[manager.roster] = [];
-		}
-		leagueManagers[manager.roster].push(entryMan);
+		});
 	}
-
 
     let weekSelection = week;
     let yearSelection = year;
@@ -169,7 +156,7 @@
                         } else if(playersInfo.players[managerWeek.starters[i]].pos != 'DEF' && !positionLeaders[playersInfo.players[managerWeek.starters[i]].pos]) {
                             positionLeaders[playersInfo.players[managerWeek.starters[i]].pos] = []; 
                         }
-                        const team = playersInfo.players[managerWeek.starters[i]].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == managerWeek.starters[i]).espnAbbreviation : nflPlayerInfo[managerWeek.starters[i]] && nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection].length > 1 ? nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[managerWeek.starters[i]].wi[yearSelection][weekSelection] && playersInfo.players[managerWeek.starters[i]].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[managerWeek.starters[i]].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[managerWeek.starters[i]].wi[yearSelection][1] && playersInfo.players[managerWeek.starters[i]].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[managerWeek.starters[i]].wi[yearSelection][1].t).espnAbbreviation : nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection][0];
+                        const team = playersInfo.players[managerWeek.starters[i]].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == managerWeek.starters[i]).espnAbbreviation : nflPlayerInfo[managerWeek.starters[i]] && nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection].length > 1 && nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection) ? nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[managerWeek.starters[i]].wi[yearSelection][weekSelection] && playersInfo.players[managerWeek.starters[i]].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[managerWeek.starters[i]].wi[yearSelection][weekSelection].t).espnAbbreviation : playersInfo.players[managerWeek.starters[i]].wi[yearSelection][1] && playersInfo.players[managerWeek.starters[i]].wi[yearSelection][1].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[managerWeek.starters[i]].wi[yearSelection][1].t).espnAbbreviation : nflPlayerInfo[managerWeek.starters[i]] ? nflPlayerInfo[managerWeek.starters[i]].espn.t[yearSelection][0] : 'NONE';
                         const entry = {
                             playerID: managerWeek.starters[i],
                             pos: playersInfo.players[managerWeek.starters[i]].pos == 'DEF' ? 'DEF' : playersInfo.players[managerWeek.starters[i]].pos,

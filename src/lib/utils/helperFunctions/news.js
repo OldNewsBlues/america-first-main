@@ -9,9 +9,7 @@ const REDDIT_FANTASY = 'https://www.reddit.com/r/fantasyfootball/new.json';
 const SERVER_API = './api/fetch_serverside_news';
 
 export const getNews = async (bypass = false) => {
-	if(get(news)[0] && !bypass) {
-		return {articles: get(news), fresh: false};
-	}
+	if(get(news)[0] && !bypass) return {articles: get(news), fresh: false};
 	const newsSources = [
 		getFeed(NBC_URL, processNBC),
 		fetch(SERVER_API, {compress: true}),
@@ -78,20 +76,14 @@ const processReddit = (rawArticles) => {
 	const children = rawArticles.children;
 	for(const rawArticle of children) {
 		const data = rawArticle.data;
-		if(bannedAuthors.includes(data.author)) {
-			continue;
-		}
+		if(bannedAuthors.includes(data.author)) continue;
 		const ts = data.created_utc * 1000;
 		const d = new Date(ts);
 		const icon = !bannedIcons.includes(data.thumbnail) ? data.thumbnail : `newsIcons/${data.subreddit}.png`;
 		const date = stringDate(d);
 		let article = `<a href="${data.url}" class="body-link">${data.url}</a>`;
-		if(data.selftext_html) {
-			article = decodeHTML(data.selftext_html);
-		}
-		if(data.secure_media_embed?.content) {
-			decodeHTML(data.secure_media_embed.content)
-		 }
+		if(data.selftext_html) article = decodeHTML(data.selftext_html);
+		if(data.secure_media_embed?.content) decodeHTML(data.secure_media_embed.content);
 		finalArticles.push({
 			title: data.title,
 			article,

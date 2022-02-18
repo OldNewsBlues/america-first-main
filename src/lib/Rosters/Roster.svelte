@@ -14,14 +14,9 @@
 		let digestedRoster = [];
 	
 		for(const singlePlayer of rawPlayers) {
-			if(!startingPlayers && !reserve && startersAndReserve.includes(singlePlayer)) {
-				continue;
-			}
+			if(!startingPlayers && !reserve && startersAndReserve.includes(singlePlayer)) continue;
 			let player = {};
-			let slot = "BN"
-			if(startingPlayers) {
-				slot = rosterPositions[i] == "WRRB_FLEX" ? "WR/RB" : rosterPositions[i];
-			}
+			let slot = !startingPlayers ? 'BN' : rosterPositions[i] == "WRRB_FLEX" ? "WR/RB" : rosterPositions[i];
 
 			if(singlePlayer == "0") {
 				player = {
@@ -74,10 +69,7 @@
 	$: if(roster.players) {
 		finalBench = digestData(players, roster.players);
 	}
-	let finalIR = null;
-	if(roster.reserve) {
-		finalIR = digestData(players, roster.reserve, false, true);
-	}
+	let finalIR = roster.reserve ? digestData(players, roster.reserve, false, true) : null;
 
 	const buildRecord = (newRoster) => {
 		const innerRecord = [];
@@ -115,10 +107,7 @@
 	const calcHeight = () => {
 		const multiplier = 48;
 		const benchLength = finalBench.length * multiplier + 53;
-		let irLength = 0;
-		if(finalIR) {
-			irLength = finalIR.length * multiplier + 52;
-		}
+		let irLength = finalIR ? finalIR.length * multiplier + 52 : 0;
 		return benchLength + irLength;
 	}
 

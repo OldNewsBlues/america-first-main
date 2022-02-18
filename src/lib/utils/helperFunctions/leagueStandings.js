@@ -10,9 +10,7 @@ import { get } from 'svelte/store';
 import {standingsStore} from '$lib/stores';
 
 export const getLeagueStandings = async () => {
-	if(get(standingsStore).matchupWeeks) {
-		return get(standingsStore);
-	}
+	if(get(standingsStore).matchupWeeks) return get(standingsStore);
 
 	const [nflState, leagueData, rosters] = await waitForAll(
 		getNflState(),
@@ -23,13 +21,10 @@ export const getLeagueStandings = async () => {
 	const yearData = leagueData.season;
 	const regularSeasonLength = leagueData.settings.playoff_week_start - 1;
 	let medianMatch = false;
-	if(leagueData.settings.league_average_match == 1) {
-		medianMatch = true;
-	}
+	if(leagueData.settings.league_average_match == 1) medianMatch = true;
 	const yearManagers = {};
-	for(const managerID in managers) {
-		const manager = managers[managerID];
-		const year = parseInt(yearData);
+	const year = parseInt(yearData);
+	for(const manager of managers) {
 		if(manager.yearsactive.includes(year)) {
 			yearManagers[manager.roster] = {
 				managerID: manager.managerID,
@@ -54,7 +49,6 @@ export const getLeagueStandings = async () => {
 
 	// if at least one week hasn't been completed, then standings can't be created
 	if(week < 2) return null;
-	
 
 	// pull in all matchup data for the season
 	const matchupsPromises = [];
@@ -119,13 +113,11 @@ export const processStandings = (matchup, standingsData, rosters, medianMatch, y
 			points: match.points,
 		})
 
-		if(medianMatch == true){
-			scoresArray.push(match.points);
-		}
+		if(medianMatch) scoresArray.push(match.points);
 	}
 	// calculating median score for the week
 	let medianScore;
-	if(medianMatch == true){
+	if(medianMatch){
 		const numManagers = scoresArray.length;
 		scoresArray = scoresArray.sort((a, b) => b - a).slice(numManagers / 2 - 1, numManagers / 2 + 1);
 		medianScore = (scoresArray[0] + scoresArray[1]) / 2;
@@ -134,12 +126,10 @@ export const processStandings = (matchup, standingsData, rosters, medianMatch, y
 	for(const matchupKey in matchups) {
 		const teamA = matchups[matchupKey][0];
 		const teamB = matchups[matchupKey][1];
-
-	
 		const divisionMatchup = teamA.division && teamB.division &&teamA.division == teamB.division;
 
 		// league average match
-		if(medianMatch == true) {
+		if(medianMatch) {
 			for(let i = 0; i < 2; i++) {
 				if(matchups[matchupKey][i].points > medianScore) {
 					standingsData[matchups[matchupKey][i].rosterID].wins ++;

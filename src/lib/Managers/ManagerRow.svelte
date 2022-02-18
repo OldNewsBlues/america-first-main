@@ -5,13 +5,7 @@
 
     export let manager, rosters, users, key;
 
-
-    let profilePic = manager.photo;
-    // default profile picture
-    if(profilePic == '/managers/name.jpg') {
-        profilePic = '/managers/profile-empty-gray.png'
-    }
-
+    const profilePic = manager.photo == '/managers/name.jpg' ? '/managers/profile-empty-gray.png' : manager.photo;
     const roster = rosters.rosters[manager.roster - 1];
     const user = users[roster.owner_id];
 </script>

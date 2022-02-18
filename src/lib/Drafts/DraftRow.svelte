@@ -1,6 +1,14 @@
 <script>
-  	import {Row, Cell } from '@smui/data-table';
-    export let draftRow, draftType, row, reversalRound, previous=false;
+    import { Icon } from '@smui/icon-button';
+    import {Row, Cell } from '@smui/data-table';
+
+    export let draftRow, draftType, row, reversalRound, previous=false, expanded;
+
+    let selected = '0px';
+    $: {
+        selected = expanded ? '25px' : '0px';
+    }
+
 </script>
 
 <style>
@@ -109,6 +117,31 @@
         bottom: 0.5em;
         color: rgba(0, 0, 0, 0.87);
     }
+
+    .pickGrades {
+		overflow: hidden;
+		width: 100%;
+		display: inline-flex;
+		transition: max-height 0.7s ease-in-out;
+		margin: 4px 0;
+        background-color: var(--transactHeader);
+        font-size: 0.8em;
+	}
+
+    .interactive {
+		display: inline-flex;
+		position: absolute;
+		background-color: var(--transactHeader);
+		width: 100%;
+		height: 15px;
+		align-items: center;
+		justify-content: center;
+		color: var(--gcPlayRowText);
+	}
+
+    .clickable {
+		cursor: pointer;
+	}
 </style>
 
 <Row>
@@ -142,6 +175,17 @@
                     <div class="playerAvatar" style="{draftCol.player.avatar}" />
                     <br />
                     <div class="name">{draftCol.player.name}{draftCol.player.position == "DEF" ? "" : ` (${draftCol.player.team})`}</div>
+                {/if}
+                {#if draftCol.player.ovrClass || draftCol.player.ovrPickGrade}
+                    <div class="pickGrades" style="max-height: {selected};">
+                        {draftCol.player.ovrClass}
+                        {draftCol.player.posClass}
+                        {draftCol.player.ovrPickGrade.includes('plus') ? draftCol.player.ovrPickGrade.slice(0, 1) + '+' : draftCol.player.ovrPickGrade}
+                        {draftCol.player.posPickGrade.includes('plus') ? draftCol.player.posPickGrade.slice(0, 1) + '+' : draftCol.player.posPickGrade}
+                    </div>
+                    <div class="interactive clickable" on:click={() => expanded = !expanded}>
+                        <Icon class="material-icons icon">close_fullscreen</Icon> Pick Grades
+                    </div>
                 {/if}
             </Cell>
         {/if}

@@ -27,14 +27,8 @@
         }
 
         if(timezone == 'CST') {
-            if(oldTimeHour == 1) {
-                newTimeHour = 12;
-            } else {
-                newTimeHour = oldTimeHour - 1;
-            }
-            if(oldTimeHour == 12) {
-                timePart = 'AM'; 
-            }
+            newTimeHour = oldTimeHour == 1 ? 12 : oldTimeHour - 1;
+            if(oldTimeHour == 12) timePart = 'AM'; 
         } else if(timezone == 'MST') {
             if(oldTimeHour == 1) {
                 newTimeHour = 11;
@@ -44,9 +38,7 @@
             } else {
                 newTimeHour = oldTimeHour - 2;
             }
-            if(oldTimeHour == 12) {
-                timePart = 'AM';
-            }
+            if(oldTimeHour == 12) timePart = 'AM';
         } else if(timezone == 'PST') {
             if(oldTimeHour == 1) {
                 newTimeHour = 10;
@@ -59,13 +51,10 @@
             } else {
                 newTimeHour = oldTimeHour - 3;
             }
-            if(oldTimeHour == 12) {
-                timePart = 'AM';
-            }
+            if(oldTimeHour == 12) timePart = 'AM';
         }
 
         let shiftedTime = newTimeHour.toString() + time.slice(2, time.length - 2) + timePart;
-       
         return shiftedTime;
     }
 

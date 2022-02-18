@@ -4,9 +4,7 @@ import {users} from '$lib/stores';
 
 let queryLeagueID = leagueID;
 export const getLeagueUsers = async (queryLeagueID) => {
-	if(get(users)[queryLeagueID]) {
-		return get(users)[queryLeagueID];
-	}
+	if(get(users)[queryLeagueID]) return get(users)[queryLeagueID];
 	const res = await fetch(`https://api.sleeper.app/v1/league/${queryLeagueID}/users`, {compress: true}).catch((err) => { console.error(err); });
 	const data = await res.json().catch((err) => { console.error(err); });
 	

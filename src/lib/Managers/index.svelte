@@ -10,9 +10,7 @@
         transactionsData = newTransactions; 
     }
 
-    if(transactionsData.stale) {
-        refreshTransactions();
-    }    
+    if(transactionsData.stale) refreshTransactions();
 </script>
 
 <div class="matchups"> 

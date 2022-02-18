@@ -1,9 +1,14 @@
-export const predictScores = (players, week, leagueData) => {
+export const predictScores = (players, week, leagueData, type) => {
     const starterPositions = getStarterPositions(leagueData);
     const year = parseInt(leagueData.season);
 
     // sort roster by highest projected points for that week
-    const projectedPlayers = [...players].sort((a, b) => (b.wi[year] && b.wi[year][week] ? b.wi[year][week].p : 0) - (a.wi[year] && a.wi[year][week] ? a.wi[year][week].p : 0));
+    let projectedPlayers;
+    if(type == 'projection') {
+        projectedPlayers = [...players].sort((a, b) => (b.wi[year] && b.wi[year][week] ? b.wi[year][week].p : 0) - (a.wi[year] && a.wi[year][week] ? a.wi[year][week].p : 0));
+    } else if(type == 'result') {
+        projectedPlayers = [...players].sort((a, b) => b.fpts - a.fpts);
+    }
 
     // now that the players are sorted, grab the QBs
     const qbs = projectedPlayers.filter(p => p.pos == 'QB');
@@ -27,15 +32,15 @@ export const predictScores = (players, week, leagueData) => {
     let powerScore = 0;
     // next, use the roster configuration to grab the highest scorer at each position
     for(const starterPosition of starterPositions) {
-        const qb = parseFloat(qbs[0]?.wi[year] && qbs[0]?.wi[year][week] ? qbs[0].wi[year][week].p : 0);
-        const rb = parseFloat(rbs[0]?.wi[year] && rbs[0]?.wi[year][week] ? rbs[0].wi[year][week].p : 0);
-        const wr = parseFloat(wrs[0]?.wi[year] && wrs[0]?.wi[year][week] ? wrs[0].wi[year][week].p : 0);
-        const te = parseFloat(tes[0]?.wi[year] && tes[0]?.wi[year][week] ? tes[0].wi[year][week].p : 0);
-        const dl = parseFloat(dls[0]?.wi[year] && dls[0]?.wi[year][week] ? dls[0].wi[year][week].p : 0);
-        const lb = parseFloat(lbs[0]?.wi[year] && lbs[0]?.wi[year][week] ? lbs[0].wi[year][week].p : 0);
-        const db = parseFloat(dbs[0]?.wi[year] && dbs[0]?.wi[year][week] ? dbs[0].wi[year][week].p : 0);
-        const k = parseFloat(ks[0]?.wi[year] && ks[0]?.wi[year][week] ? ks[0].wi[year][week].p : 0);
-        const def = parseFloat(defs[0]?.wi[year] && defs[0]?.wi[year][week] ? defs[0].wi[year][week].p : 0);
+        const qb = qbs.length == 0 ? 0 : type == 'projection' ? qbs[0].nullifyProj ? qbs[0].nullifyProj : parseFloat(qbs[0]?.wi[year] && qbs[0]?.wi[year][week] ? qbs[0].wi[year][week].p : 0) : qbs[0].fpts;
+        const rb = rbs.length == 0 ? 0 : type == 'projection' ? rbs[0].nullifyProj ? rbs[0].nullifyProj : parseFloat(rbs[0]?.wi[year] && rbs[0]?.wi[year][week] ? rbs[0].wi[year][week].p : 0) : rbs[0].fpts;
+        const wr = wrs.length == 0 ? 0 : type == 'projection' ? wrs[0].nullifyProj ? wrs[0].nullifyProj : parseFloat(wrs[0]?.wi[year] && wrs[0]?.wi[year][week] ? wrs[0].wi[year][week].p : 0) : wrs[0].fpts;
+        const te = tes.length == 0 ? 0 : type == 'projection' ? tes[0].nullifyProj ? tes[0].nullifyProj : parseFloat(tes[0]?.wi[year] && tes[0]?.wi[year][week] ? tes[0].wi[year][week].p : 0) : tes[0].fpts;
+        const dl = dls.length == 0 ? 0 : type == 'projection' ? dls[0].nullifyProj ? dls[0].nullifyProj : parseFloat(dls[0]?.wi[year] && dls[0]?.wi[year][week] ? dls[0].wi[year][week].p : 0) : dls[0].fpts;
+        const lb = lbs.length == 0 ? 0 : type == 'projection' ? lbs[0].nullifyProj ? lbs[0].nullifyProj : parseFloat(lbs[0]?.wi[year] && lbs[0]?.wi[year][week] ? lbs[0].wi[year][week].p : 0) : lbs[0].fpts;
+        const db = dbs.length == 0 ? 0 : type == 'projection' ? dbs[0].nullifyProj ? dbs[0].nullifyProj : parseFloat(dbs[0]?.wi[year] && dbs[0]?.wi[year][week] ? dbs[0].wi[year][week].p : 0) : dbs[0].fpts;
+        const k = ks.length == 0 ? 0 : type == 'projection' ? ks[0].nullifyProj ? ks[0].nullifyProj : parseFloat(ks[0]?.wi[year] && ks[0]?.wi[year][week] ? ks[0].wi[year][week].p : 0) : ks[0].fpts;
+        const def = defs.length == 0 ? 0 : type == 'projection' ? defs[0].nullifyProj ? defs[0].nullifyProj : parseFloat(defs[0]?.wi[year] && defs[0]?.wi[year][week] ? defs[0].wi[year][week].p : 0) : defs[0].fpts;
         switch (starterPosition) {
             case 'QB':
                 qbs.shift();

@@ -35,9 +35,8 @@ export const getAuthor = (rosters, users, author) => {
             break;
         }
     }
-    if(!user) {
-        return author;
-    }
+    if(!user) return author;
+
     const userID = user.user_id;
     const roster = rosters.find(r => r.owner_id == userID || (r.co_owners && r.co_owners.indexOf(userID) > -1));
     return `<a href="/managers?manager=${managers.findIndex(m => m.roster == roster.roster_id)}">${user.metadata.team_name ? user.metadata.team_name : user.display_name}</a>`;
@@ -52,9 +51,7 @@ export const getAvatar = (users, author) => {
             break;
         }
     }
-    if(!user) {
-        return 'managers/question.jpg';
-    }
+    if(!user) return 'managers/question.jpg';
 
     if(user.avatar != null) {
         userAvatar = `https://sleepercdn.com/avatars/thumbs/${user.avatar}`;
@@ -71,10 +68,13 @@ export const parseDate = (rawDate) => {
     return stringDate(d);
 }
 
-export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, secondStatCat = null, header, field, short, secondField = null, classes = null, category = null}, roundOverride = 10, yMinOverride = null, classGraph = false) => {
-    if(!stats) {
-        return null;
-    }
+export const capitalizeFirstLetter = (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, secondStatCat = null, header, field, short, secondField = null, classes = null, path = null, pathKey = null, pathKey2 = null, negative = null}, roundOverride = 10, yMinOverride = null) => {
+    if(!stats) return null;
+
     const graph = {
         stats: [],
         secondStats: [],
@@ -90,13 +90,25 @@ export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, s
         yMax: 0,
         short,
         classes,
-        category,
+        path,
+        pathKey,
+        pathKey2,
+        negative,
     }
 
     const sortedStats = [...stats].sort((a, b) => a.recordManID - b.recordManID);
 
-    for(const indivStat of sortedStats) {
-        graph.stats.push(Math.round(indivStat[field]));
+    for(let indivStat of sortedStats) {
+        let trueStat = indivStat;
+        
+        if(path && path.length > 0) {
+            for(let i = 0; i < path.length; i++) {
+                trueStat = trueStat[path[i]];
+            }
+        }
+        
+        const pushStat = negative ? -1 * Math.round(trueStat[field]) : Math.round(trueStat[field]);
+        graph.stats.push(pushStat);
         graph.managers.push(indivStat.manager);
         graph.recordManIDs.push(indivStat.recordManID)
     }
@@ -105,7 +117,14 @@ export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, s
         const sortedSecondStats = [...secondStats].sort((a, b) => a.recordManID - b.recordManID);
 
         for(const indivSecondStat of sortedSecondStats) {
-            graph.secondStats.push(Math.round(indivSecondStat[secondField]));
+            let trueStat = indivSecondStat;
+            if(path && path.length > 0) {
+                for(let i = 0; i < path.length; i++) {
+                    trueStat = trueStat[path[i]];
+                }
+            }
+            const pushStat = negative ? -1 * Math.round(trueStat[secondField]) : Math.round(trueStat[secondField]);
+            graph.secondStats.push(pushStat);
         }
     }
 
@@ -119,7 +138,7 @@ export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, s
                 percs: [],
                 heights: [],
                 short: statClass.short,
-                colors: statClass.colors,
+                colors: statClass?.colors || null,
                 yMax: 0,
             });
 
@@ -136,31 +155,25 @@ export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, s
             const graphClass = graph.classes.find(c => c.short == statClass.short);
 
             for(const key of statClass.keys) {
-
-                if(sortedStats.find(m => m[statClass.field][key])) {
-
-                    graphClass.keys.push(key);
-                    
-                    for(const indivStat of sortedStats) {
-
-                        if(!statsEntry[indivStat.recordManID]) {
-                            statsEntry[indivStat.recordManID] = [];
-                        }
-                        if(!percsEntry[indivStat.recordManID]) {
-                            percsEntry[indivStat.recordManID] = [];
-                        }
-
-                        totalsArray.push(indivStat[statClass.totalField]);
-                        totals[indivStat.recordManID] = indivStat[statClass.totalField];
-
-                        if(indivStat[statClass.field][key]) {
-                            statsEntry[indivStat.recordManID].push(Math.round(indivStat[statClass.field][key].fpts));
-                            percsEntry[indivStat.recordManID].push(indivStat[statClass.field][key].perc);
-                        } else {
-                            statsEntry[indivStat.recordManID].push(0);
-                            percsEntry[indivStat.recordManID].push(0);
-                        }
+                graphClass.keys.push(key);
+                
+                for(let indivStat of sortedStats) {
+                    let totalStat = indivStat;
+                    let trueStat = indivStat;
+                    for(let i = 0; i < statClass.path.length; i++) {
+                        trueStat = statClass.path[i] == 'key' ? trueStat[key] : trueStat[statClass.path[i]];
                     }
+                    for(let i = 0; i < statClass.totalPath.length; i++) {
+                        totalStat = statClass.path[i] == 'key' ? totalStat[key] : totalStat[statClass.totalPath[i]];
+                    }
+
+                    if(!statsEntry[indivStat.recordManID]) statsEntry[indivStat.recordManID] = [];
+                    if(!percsEntry[indivStat.recordManID]) percsEntry[indivStat.recordManID] = [];
+
+                    totalsArray.push(totalStat[statClass.totalField]);
+                    totals[indivStat.recordManID] = totalStat[statClass.totalField];
+                    statsEntry[indivStat.recordManID].push(Math.round(trueStat[statClass.field]));
+                    percsEntry[indivStat.recordManID].push(trueStat.perc);
                 }
             }
 
@@ -176,8 +189,8 @@ export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, s
                     
                     const adjustedPerc = percsEntry[recordManID][i] * totals[recordManID] / actualMax;
                     runningHeight += adjustedPerc;
-                    heightsEntry[recordManID].push(runningHeight);
-                    percsEntry[recordManID][i] = Math.round(percsEntry[recordManID][i]);
+                    heightsEntry[recordManID].push(100 * runningHeight);
+                    percsEntry[recordManID][i] = Math.round(100 * percsEntry[recordManID][i]);
                 }
 
                 goBetween.push({
@@ -201,12 +214,8 @@ export const generateGraph = ({stats, secondStats = null, x, y, stat, statCat, s
 
     graph.yMax = max(graph.stats, roundOverride);
     graph.yMin = min(graph.stats, roundOverride);
-    if(secondField) {
-        graph.yMin = min(graph.secondStats, roundOverride);
-    }
-    if(yMinOverride) {
-        graph.yMin = yMinOverride;
-    }
+    if(secondField) graph.yMin = min(graph.secondStats, roundOverride);
+    if(yMinOverride) graph.yMin = yMinOverride;
 
     return graph;
 }

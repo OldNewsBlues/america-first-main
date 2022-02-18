@@ -1,12 +1,16 @@
 <script context="module">
-	import { getAwards } from '$lib/utils/helper';
+	import { getAwards, loadPlayers, waitForAll } from '$lib/utils/helper';
 
     export async function load() {
-        const awardsData = getAwards();
+		const [awardsData, playersData] = await waitForAll(
+			getAwards(),
+			loadPlayers(),
+		).catch((err) => { console.error(err); });
 	
 		return {
 			props: {
 				awardsData,
+				playersData,
 			}
 		};
 	}
@@ -16,7 +20,8 @@
 	import { Awards } from '$lib/components'
 	import LinearProgress from '@smui/linear-progress';
 
-    export let awardsData;
+    export let awardsData, playersData;
+	const players = playersData.players;
 </script>
 
 <style>
@@ -47,14 +52,14 @@
 </style>
 
 <div class="awards">
-	{#await awardsData }
+	{#await awardsData}
 		<div class="loading">
 			<p>Retrieving awards data...</p>
 			<LinearProgress indeterminate />
 		</div>
-	{:then {podiums, currentManagers} }
+	{:then {podiums} }
 		{#each podiums as podium}
-			<Awards {podium} {currentManagers} />
+			<Awards {podium} {players} />
 		{:else}
 			<p class="nothingYet">No seasons have been completed yet, so no awards have been earned...</p>
 		{/each}

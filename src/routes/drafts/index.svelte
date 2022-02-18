@@ -1,14 +1,16 @@
 <script context="module">
-	import { getUpcomingDraft, getPreviousDrafts } from '$lib/utils/helper';
+	import { getUpcomingDraft, getPreviousDrafts, getLeagueRecords } from '$lib/utils/helper';
 
     export async function load() {
         const upcomingDraftData = getUpcomingDraft();
         const previousDraftsData = getPreviousDrafts();
+        const records = await getLeagueRecords();
 	
 		return {
 			props: {
 				upcomingDraftData,
-                previousDraftsData
+                previousDraftsData,
+                records,
 			}
 		};
 	}
@@ -17,7 +19,7 @@
 <script>
 	import { Drafts } from '$lib/components';
 
-    export let upcomingDraftData, previousDraftsData;
+    export let upcomingDraftData, previousDraftsData, records;
 </script>
 
 <style>
@@ -28,5 +30,5 @@
 </style>
 
 <div id="main">
-	<Drafts {upcomingDraftData} {previousDraftsData} />
+	<Drafts {upcomingDraftData} {previousDraftsData} records={records.playerRanks} />
 </div>

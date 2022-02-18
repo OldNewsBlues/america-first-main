@@ -20,9 +20,7 @@
 		prevManagers = newTransactions.prevManagers;
 	}
 
-	if(stale) {
-		refreshTransactions();
-	}
+	if(stale) refreshTransactions();
 
 	let players = playersInfo.players;
 
@@ -31,30 +29,22 @@
 		players = newPlayersInfo.players;
 	}
 
-	if(playersInfo.stale) {
-		refreshPlayers();
-	}
+	if(playersInfo.stale) refreshPlayers();
 
 	// filtered subset based on search
 	let subsetTransactions = [];
-
 	let totalTransactions = 0;
 
 	const setFilter = (filterBy, transactions) => {
-		if(filterBy == "both") {
-			return transactions;
-		} else {
-			return transactions.filter( transaction => transaction.type == filterBy);
-		}
+		if(filterBy == "both") return transactions;
+		return transactions.filter(transaction => transaction.type == filterBy);
 	}
 
 	// filtered subset based on filter
 	$: filteredTransactions = setFilter(show, transactions);
 
 	const setQuery = (query, filteredTransactions) => {
-		if(!filteredTransactions) {
-			return [];
-		}
+		if(!filteredTransactions) return [];
 		if(query && query.trim() != "") {
 			subsetTransactions = filteredTransactions.filter( transaction => checkForQuery(transaction));
 			totalTransactions = subsetTransactions.length;
@@ -71,14 +61,9 @@
 
 	const changePage = (dest, pageChange = false) => {
 		if(queryPage == dest && pageChange) return;
-		page = dest;
-		if(dest > (filteredTransactions.length / perPage) || dest < 0) {
-			page = 0;
-		}
+		page = dest > (filteredTransactions.length / perPage) || dest < 0 ? 0 : dest;
 		displayTransactions = setQuery(query, filteredTransactions);
-		if(postUpdate) {
-			setTimeout(() => {goto(`/transactions?show=${show}&query=${query}&page=${page+1}`, {noscroll: true,  keepfocus: true})}, 800);
-		}
+		if(postUpdate) setTimeout(() => {goto(`/transactions?show=${show}&query=${query}&page=${page+1}`, {noscroll: true,  keepfocus: true})}, 800);
 	}
 
 	let lastUpdate = new Date;
@@ -88,17 +73,13 @@
 		query = query.trimLeft();
 		if(query.trim() == oldQuery) return;
 		page = 0;
-		if(postUpdate) {
-			updateQueryParam(false);
-		}
+		if(postUpdate) updateQueryParam(false);
 	}
 
 	let called = false;
 
 	const updateQueryParam = (stack = true) => {
-		if(called && !stack) {
-			return;
-		}
+		if(called && !stack) return;
 		called = true;
 		const FIVE_SECONDS = 5 * 1000; /* five seconds */
 		if(((new Date) - lastUpdate) > FIVE_SECONDS) {
@@ -111,9 +92,7 @@
 
 	const clearSearch = () => {
 		query = "";
-		if(postUpdate) {
-			goto(`/transactions?show=${show}&query=&page=${page+1}`, {noscroll: true,  keepfocus: true});
-		}
+		if(postUpdate) goto(`/transactions?show=${show}&query=&page=${page+1}`, {noscroll: true,  keepfocus: true});
 	}
 	
 	const checkMatch = (query, name) => {
@@ -136,11 +115,9 @@
 	}
 
 	$: changePage(page, true);
-
 	$: setQuery(query);
 
     let el;
-
     $: top = el?.getBoundingClientRect() ? el?.getBoundingClientRect().top  : 0;
 
 	const setShow = (val) => {

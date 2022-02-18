@@ -1,10 +1,8 @@
 <script>
     export let matchID, home, away, isComplete, matchSelection = matchID, showGameBox, showMatchBox;
 
-    let newMatchSelection
-    const changeMatchSelection = (matchID) => {
-        newMatchSelection = matchID;
-        matchSelection = newMatchSelection;
+    const changeMatchSelection = (newMatchID) => {
+        matchSelection = newMatchID;
         showMatchBox = true;
         showGameBox = false;
         return matchSelection; 

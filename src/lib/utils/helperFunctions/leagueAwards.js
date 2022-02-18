@@ -4,15 +4,13 @@ import {
 	getLeagueRosters,
 	leagueID,
 	managers,
-	getLeagueData } from '$lib/utils/helper';
+	getLeagueData,
+	getStarterPositions } from '$lib/utils/helper';
 import { get } from 'svelte/store';
 import {awards} from '$lib/stores';
 
-
 export const getAwards = async () => {
-	if(get(awards).podiums) {
-		return get(awards);
-	}
+	if(get(awards).podiums) return get(awards);
 	const [rosterRes, users, leagueData] = await waitForAll(
 		getLeagueRosters(leagueID),
 		getLeagueUsers(leagueID),
@@ -20,39 +18,32 @@ export const getAwards = async () => {
 	).catch((err) => { console.error(err); });
 
 	const rosters = rosterRes.rosters;
-
 	const currentManagers = {};
+	const leagueManagers = {}; 
 
-	let leagueManagers = {}; 
+	for(const manager of managers) {
+		if(!leagueManagers[manager.roster]) leagueManagers[manager.roster] = [];
 
-	for(const managerID in managers) {
-		const manager = managers[managerID];
-
-		const entryMan = {
+		leagueManagers[manager.roster].push({
 			managerID: manager.managerID,
 			rosterID: manager.roster,
 			name: manager.name,
 			status: manager.status,
 			yearsactive: manager.yearsactive,
-		}
-
-		if(!leagueManagers[manager.roster]) {
-			leagueManagers[manager.roster] = [];
-		}
-		leagueManagers[manager.roster].push(entryMan);
+		});
 	}
 
 	for(const roster of rosters) {
 		const user = users[roster.owner_id];
 
-		let recordManager = leagueManagers[roster.roster_id].filter(m => m.status == "active");
-		let recordManID = recordManager[0].managerID;
+		const recordManager = leagueManagers[roster.roster_id].find(m => m.status == "active");
+		const recordManID = recordManager.managerID;
 
 		if(user) {
 			currentManagers[recordManID] = {
 				avatar: user.avatar != null ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : `https://sleepercdn.com/images/v2/icons/player_default.webp`,
 				name: user.metadata.team_name ? user.metadata.team_name : user.display_name,
-				realname: recordManager[0].name,
+				realname: recordManager.name,
 			}
 		} else {
 			currentManagers[recordManID] = {
@@ -63,14 +54,14 @@ export const getAwards = async () => {
 		}
 	}
 
-	let previousSeasonID = leagueData.previous_league_id;
+	let podiumStartID = leagueData.status == 'complete' ? leagueData.league_id : leagueData.previous_league_id;
 
-	const {podiums, finalRanks} = await getPodiums(previousSeasonID)
+	const {podiums, finalRanks} = await getPodiums(podiumStartID)
 
 	const gatheredAwards = {
 		podiums,
 		finalRanks,
-		currentManagers
+		currentManagers,
 	};
 
 	awards.update(() => gatheredAwards);
@@ -89,6 +80,8 @@ const getPodiums = async (previousSeasonID) => {
 		const {
 			losersData,
 			winnersData,
+			finalMatch,
+			rosterPositions,
 			numPlayoffMatches,
 			numToiletMatches,
 			numPOTeams,
@@ -135,11 +128,13 @@ const getPodiums = async (previousSeasonID) => {
 			divisions: divisionArr,
 			toilet: null,
 		}
+		let champRosterID;
 		//final ranks of playoff-bracket teams
 		if(numPOTeams == 4){
 			const finalsMatch = winnersData.slice().find(f => f.m == numPlayoffMatches - 1);
 			podium.champion = prevManagers[recordManagers.find(m => m.rosterID == finalsMatch.w).managerID];
 			finalRank.champion = podium.champion;
+			champRosterID = finalsMatch.w;
 			podium.second = prevManagers[recordManagers.find(m => m.rosterID == finalsMatch.l).managerID];
 			finalRank.second = podium.second;
 
@@ -151,6 +146,7 @@ const getPodiums = async (previousSeasonID) => {
 			const finalsMatch = winnersData.slice().find(f => f.m == numPlayoffMatches - 1);
 			podium.champion = prevManagers[recordManagers.find(m => m.rosterID == finalsMatch.w).managerID];
 			finalRank.champion = podium.champion;
+			champRosterID = finalsMatch.w;
 			podium.second = prevManagers[recordManagers.find(m => m.rosterID == finalsMatch.l).managerID];
 			finalRank.second = podium.second;
 
@@ -166,6 +162,7 @@ const getPodiums = async (previousSeasonID) => {
 			const finalsMatch = winnersData.slice().find(f => f.m == numPlayoffMatches - 3);
 			podium.champion = prevManagers[recordManagers.find(m => m.rosterID == finalsMatch.w).managerID];
 			finalRank.champion = podium.champion;
+			champRosterID = finalsMatch.w;
 			podium.second = prevManagers[recordManagers.find(m => m.rosterID == finalsMatch.l).managerID];
 			finalRank.second = podium.second;
 
@@ -284,27 +281,27 @@ const getPodiums = async (previousSeasonID) => {
 		}
 		// now check if 5-8 were named in the winners bracket
 		for(let i = 5; i < 8; i++) {
-			if(finalRank[i] && finalRank[i] != null) {
-				processedFinalRanks[i] = finalRank[i];
-			}
+			if(finalRank[i]) processedFinalRanks[i] = finalRank[i];
 		}
 		
 		if(losersBracketType == "toilet") {  									// working backwards from last place, set the rank IF it has not already been set by the winners bracket check above
 			for(let i = 0; i < 8; i++) {
 				if(toiletArray[i] && toiletArray[i] != null) {
-					if(processedFinalRanks[numTeams - i] == null) {
-						processedFinalRanks[numTeams - i] = toiletArray[i];
-					}
+					if(!processedFinalRanks[numTeams - i]) processedFinalRanks[numTeams - i] = toiletArray[i];
 				}
 			}
 		} else if(losersBracketType == "consolation") { 						// up to 8 ranks can be found from consolation bracket, beginning with the winner of that bracket
 			for(let i = 1; i < 9; i++) {
-				if(consolationArray[i - 1] && consolationArray[i - 1] != null) {
-					processedFinalRanks[numPOTeams + i] = consolationArray[i - 1];			
-				}
+				if(consolationArray[i - 1]) processedFinalRanks[numPOTeams + i] = consolationArray[i - 1];			
 			}
 		}
-
+		const champMatchupInfo = finalMatch.find(m => m.roster_id == champRosterID);
+		podium.champRoster = {
+			starters: champMatchupInfo.starters,
+			startersPoints: champMatchupInfo.starters_points,
+			points: champMatchupInfo.points,
+			rosterPositions,
+		}
 		podiums.push(podium);
 		finalRanks.push(processedFinalRanks);
 	}
@@ -323,9 +320,7 @@ const getPreviousLeagueData = async (previousSeasonID) => {
 
 	const [leagueRes, rostersData, usersData, losersRes, winnersRes] = await waitForAll(...resPromises).catch((err) => { console.error(err); });
 
-	if(!leagueRes.ok || !losersRes.ok || !winnersRes.ok) {
-		throw new Error(data);
-	}
+	if(!leagueRes.ok || !losersRes.ok || !winnersRes.ok) throw new Error(data);
 
 	const jsonPromises = [
 		leagueRes.json(),
@@ -339,57 +334,48 @@ const getPreviousLeagueData = async (previousSeasonID) => {
 	const yearP = parseInt(year);
 	const numPOTeams = prevLeagueData.settings.playoff_teams;
 	const numToiletTeams = prevLeagueData.total_rosters - numPOTeams;
-	let losersBracketType;
-	if (prevLeagueData.settings.playoff_type == 0) {
-		losersBracketType = "toilet";
-	} else if(prevLeagueData.settings.playoff_type == 1) {
-		losersBracketType = "consolation";
-	}
+	const losersBracketType = prevLeagueData.settings.playoff_type == 0 ? 'toilet' : prevLeagueData.settings.playoff_type == 1 ? 'consolation' : null;
+	const leagueManagers = {};
 
-	let leagueManagers = {};
+	for(const manager of managers) {
+		if(!leagueManagers[manager.roster]) leagueManagers[manager.roster] = [];
 
-	for(const managerID in managers) {
-		const manager = managers[managerID];
-
-		const entryMan = {
+		leagueManagers[manager.roster].push({
 			managerID: manager.managerID,
 			rosterID: manager.roster,
 			name: manager.name,
 			status: manager.status,
 			yearsactive: manager.yearsactive,
 			yearP,
-		}
-
-		if(!leagueManagers[manager.roster]) {
-			leagueManagers[manager.roster] = [];
-		}
-		leagueManagers[manager.roster].push(entryMan);
+		});
 	}
 
 	const previousRosters = rostersData.rosters;
-	let recordManagers = [];
+	const recordManagers = [];
 
 	for(const roster of previousRosters) {
-		let recordManager = leagueManagers[roster.roster_id].filter(m => m.yearsactive.includes(yearP));
-		recordManagers.push(recordManager[0]);
+		const recordManager = leagueManagers[roster.roster_id].find(m => m.yearsactive.includes(yearP));
+		recordManagers.push(recordManager);
 	}
 
+	const rosterPositions = getStarterPositions(prevLeagueData);
 	const numDivisions = prevLeagueData.settings.divisions || 1;
-
-	previousSeasonID = prevLeagueData.previous_league_id;
-
 	const playoffRounds = winnersData[winnersData.length - 1].r
 	const numPlayoffMatches = winnersData[winnersData.length - 1].m
-	let toiletRounds = 0;
-	let numToiletMatches = 0;
-	if(numToiletTeams > 0) {
-		toiletRounds = losersData[losersData.length - 1].r
-		numToiletMatches = losersData[losersData.length - 1].m
-	}
+	const toiletRounds = numToiletTeams > 0 ? losersData[losersData.length - 1].r : 0;
+	const numToiletMatches = numToiletTeams > 0 ? losersData[losersData.length - 1].m : 0;
+
+	const finalWeek = prevLeagueData.settings.playoff_week_start - 1 + winnersData.slice().pop().r;
+	const finalMatchRes = await fetch(`https://api.sleeper.app/v1/league/${previousSeasonID}/matchups/${finalWeek}`, {compress: true});
+	const finalMatchJson = await finalMatchRes.json();
+	const finalMatch = await finalMatchJson.filter(m => m.matchup_id == 1);
+	previousSeasonID = prevLeagueData.previous_league_id;
 
 	return {
 		losersData,
 		winnersData,
+		finalMatch,
+		rosterPositions,
 		numPlayoffMatches,
 		numToiletMatches,
 		numPOTeams,
@@ -410,7 +396,6 @@ const getPreviousLeagueData = async (previousSeasonID) => {
 // determine division champions and construct previousManagers object
 const buildDivisionsAndManagers = ({usersData, previousRosters, leagueMetadata, numDivisions, recordManagers}) => {
 	const prevManagers = {};
-
 	const divisions = {};
 
 	for(let i = 0; i < numDivisions; i++) {
@@ -419,6 +404,7 @@ const buildDivisionsAndManagers = ({usersData, previousRosters, leagueMetadata, 
 			roster: null,
 			wins: -1,
 			points: -1,
+			pointsAgainst: -1,
 			recordManID: null,
 		}
 	}
@@ -427,17 +413,19 @@ const buildDivisionsAndManagers = ({usersData, previousRosters, leagueMetadata, 
 		const rSettings = roster.settings;
 		const div = rSettings.division ? rSettings.division : 1;
 
-		let recordManager = recordManagers.filter(m => m.rosterID == roster.roster_id);
-		let recordManID = recordManager[0].managerID;
-
-		if(rSettings.wins > divisions[div].wins || (rSettings.wins == divisions[div].wins && (rSettings.fpts  + rSettings.fpts_decimal / 100)  == divisions[div].points)) {
+		const recordManager = recordManagers.find(m => m.rosterID == roster.roster_id);
+		const recordManID = recordManager.managerID;
+		const points = rSettings.fpts + rSettings.fpts_decimal / 100;
+		if(rSettings.wins > divisions[div].wins || (rSettings.wins == divisions[div].wins && rSettings.ties > divisions[div].ties) || (rSettings.wins == divisions[div].wins && rSettings.ties == divisions[div].ties && (rSettings.fpts + rSettings.fpts_decimal / 100) > divisions[div].points) || (rSettings.wins == divisions[div].wins && rSettings.ties == divisions[div].ties && (rSettings.fpts + rSettings.fpts_decimal / 100) == divisions[div].points && (rSettings.fpts_against + rSettings.fpts_against_decimal / 100) >= divisions[div].pointsAgainst)) {
 			divisions[div].points = rSettings.fpts  + rSettings.fpts_decimal / 100;
+			divisions[div].pointsAgainst = rSettings.fpts_against + rSettings.fpts_against_decimal / 100;
 			divisions[div].wins = rSettings.wins;
+			divisions[div].ties = rSettings.ties;
 			divisions[div].roster = roster.roster_id;
 			divisions[div].recordManID = recordManID;
 		}
-		const user = usersData[roster.owner_id];
 
+		const user = usersData[roster.owner_id];
 		prevManagers[recordManID] = {
 			rosterID: roster.roster_id,
 			avatar: `https://sleepercdn.com/images/v2/icons/player_default.webp`,
@@ -447,16 +435,10 @@ const buildDivisionsAndManagers = ({usersData, previousRosters, leagueMetadata, 
 			ownerID: roster.owner_id,
 		}
 		if(user) {
-			if(user.avatar != null) {
-				prevManagers[recordManID].avatar = `https://sleepercdn.com/avatars/thumbs/${user.avatar}`;
-			} else {
-				prevManagers[recordManID].avatar = `https://sleepercdn.com/images/v2/icons/player_default.webp`;
-			}
+			prevManagers[recordManID].avatar = user.avatar ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : `https://sleepercdn.com/images/v2/icons/player_default.webp`;
 			prevManagers[recordManID].name = user.metadata.team_name ? user.metadata.team_name : user.display_name;
-			prevManagers[recordManID].realname = recordManager[0].name;
+			prevManagers[recordManID].realname = recordManager.name;
 		}
-		
 	}
-
 	return {divisions, prevManagers}
 }

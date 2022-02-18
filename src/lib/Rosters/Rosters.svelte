@@ -11,9 +11,7 @@
 		players = newPlayersInfo.players;
 	}
 
-	if(playersInfo.stale) {
-		refreshPlayers();
-	}
+	if(playersInfo.stale) refreshPlayers();
 </script>
 
 <style>

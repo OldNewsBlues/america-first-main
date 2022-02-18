@@ -330,7 +330,7 @@
 											<div class="header" style="margin: 4% 0;">
 												{#if node.data.id == 'player'}
 													<div class="playerPoints" style="width: 40%;">PPG: </div>
-													<div class="playerPoints" style="width: 50%; justify-content: flex-end;">{node.data.fptspg}</div>
+													<div class="playerPoints" style="width: 50%; justify-content: flex-end;">{round(node.data.fpts.realPPG)}</div>
 												{/if}
 											</div>
 										</div>
@@ -351,24 +351,24 @@
 											</div>
 										</div>
 										<div class="yearsColumn">
-											{#each node.data.weeks as years}
-												<div class="yearRow" style="background-color: #{nflTeams.find(n => n.sleeperID == years.weeks[0].team).alternateColor};">
+											{#each node.data.years as year}
+												<div class="yearRow" style="background-color: #{nflTeams.find(n => n.sleeperID == year.team).alternateColor};">
 													<div class="headerColumn">
 														<div class="yearText">
-															{years.weeks[0].year}
+															{year.weeks[0].year}
 														</div>
 														<div class="header">
 															<div class="subText" style="width: 40%;">PTS: </div>
-															<div class="subText" style="justify-content: flex-end; width: 50%;">{round(years.fpts)}</div>
+															<div class="subText" style="justify-content: flex-end; width: 50%;">{round(year.fpts.real)}</div>
 														</div>
 														<div class="header">
 															<div class="subText" style="width: 40%;">PPG:</div>
-															<div class="subText" style="justify-content: flex-end; width: 50%;">{round(years.fptspg)}</div>
+															<div class="subText" style="justify-content: flex-end; width: 50%;">{round(year.fpts.realPPG)}</div>
 														</div>
 													</div>
 													<div class="weeksColumn">
-														{#each years.weeks as week}
-															<div class="weekRow" style="{week.topStarter == true ? "border: 0.5px solid #1cb322" : week.bottomStarter == true ? "border: 0.5px solid #e12929" : null}">
+														{#each year.weeks as week}
+															<div class="weekRow" style="{week.topBottom == 'top' ? "border: 0.5px solid #1cb322" : week.topBottom == 'bottom' ? "border: 0.5px solid #e12929" : null}">
 																<div class="week">
 																	{week.week} 
 																</div>

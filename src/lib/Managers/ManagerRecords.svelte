@@ -2,531 +2,382 @@
   	import DataTable, { Head, Body, Row, Cell } from '@smui/data-table'; 
     import Button, { Group, Label } from '@smui/button';
     import { Icon } from '@smui/tab';
-    import { gotoManager, round, nflTeams } from '$lib/utils/helper';
-    import { getManagerRecords } from '$lib/utils/helper';
-    import { managerrecords } from '$lib/stores';
+    import { gotoManager, round } from '$lib/utils/helper';
     import LeagueMatchup from '$lib/Records/LeagueMatchup.svelte';
 
 
-    export let recordManID, firstYear, currentYear, managerRecords, records;
+    export let recordManID, firstYear, currentYear, records;
 
     let showEmpty = false;
-    let emptyMessage;
     let selection = 'regular'; 
     let displayPositionRecord = 'ALL';
-    let recordPrefix;
+    let displayAcquisition = 'ALL';
     let masterSelection = 'alltime';
-    let masterPrefix;
-    let selectedYear = currentYear;
+    let masterPrefix = 'All-Time';
+    let recordPrefix = 'Regular Season';
+    let displayYear = currentYear;
+    let emptyMessage, selectedMatchup, headToHeadRecords;
 
-    let weekBests, weekWorsts, periodBests, periodWorsts, blowoutBests, blowoutWorsts, narrowBests, narrowWorsts, playerWeekBests, playerWeekMissedBests, playerPeriodBests, headToHeads, headToHeadRecords, managerPlayerRecords;
-    let headShowTies = false;
-    let headShowTiesEPE = false;
+    let showTies = {
+        headTable: {
+            match: false,
+            EPE: false,
+            bballEPE: false,
+            iq: false,
+            iqEPE: false,
+            bball: false,
+        },          
+        headViewer: {
+            match: false,
+            EPE: false,
+            bballEPE: false,
+            iq: false,
+            iqEPE: false,
+            bball: false,
+        },
+    }
 
     let positionsArray = [];
-
     let managerChoicesLeft = [];
     let managerChoicesRight = [];
 
-    let displayManagerLeft;
-
-    const displayObject = {};
-    displayObject[selection] = {
-        periodWorsts: {
-            stats: periodWorsts,
-            sort: 'fptspg',
+    let displayRecords = {
+        weekHighs: {
+            stats: records.recordArrays.managers.alltime.regular[recordManID].weekHighs,
+            sort: 'real',
+            path: ['fpts', 'starters'],
             inverted: false,
         },
-        periodBests: {
-            stats: periodBests,
-            sort: 'fptspg',
+        weekLows: {
+            stats: records.recordArrays.managers.alltime.regular[recordManID].weekLows,
+            sort: 'real',
+            path: ['fpts', 'starters'],
             inverted: false,
         },
-        weekBests: {
-            stats: weekBests,
-            sort: 'fpts',
+        periodHighs: {
+            stats: records.recordArrays.managers.alltime.regular[recordManID].periodHighs,
+            sort: 'realPPG',
+            path: ['fpts', 'starters'],
             inverted: false,
         },
-        weekWorsts: {
-            stats: weekWorsts,
-            sort: 'fpts',
-            inverted: false,
-        },
-        playerPeriodBests: {
-            stats: playerPeriodBests,
-            sort: 'playerPoints',
-            inverted: false,
-        },
-        playerWeekBests: {
-            stats: playerWeekBests,
-            sort: 'playerPoints',
-            inverted: false,
-        },
-        playerWeekMissedBests: {
-            stats: playerWeekMissedBests,
-            sort: 'benchPoints',
+        periodLows: {
+            stats: records.recordArrays.managers.alltime.regular[recordManID].periodLows,
+            sort: 'realPPG',
+            path: ['fpts', 'starters'],
             inverted: false,
         },
         blowoutBests: {
-            stats: blowoutBests,
+            stats: records.recordArrays.managers.alltime.regular[recordManID].blowoutBests,
             sort: 'matchDifferential',
+            path: [],
             inverted: false,
         },
         blowoutWorsts: {
-            stats: blowoutWorsts,
+            stats: records.recordArrays.managers.alltime.regular[recordManID].blowoutWorsts,
             sort: 'matchDifferential',
+            path: [],
             inverted: false,
         },
         narrowBests: {
-            stats: narrowBests,
+            stats: records.recordArrays.managers.alltime.regular[recordManID].narrowBests,
             sort: 'matchDifferential',
+            path: [],
             inverted: false,
         },
         narrowWorsts: {
-            stats: narrowWorsts,
+            stats: records.recordArrays.managers.alltime.regular[recordManID].narrowWorsts,
             sort: 'matchDifferential',
+            path: [],
             inverted: false,
         },
         headToHeads: {
-            stats: headToHeads,
-            sort: 'winPerc',
+            stats: records.recordArrays.managers.alltime.regular[recordManID].headToHeads,
+            sort: 'perc',
+            path: ['outcomes', 'match'],
             inverted: false,
         },
+        players: {
+            periodHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.periodHighs,
+                sort: 'real',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            weekHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.weekHighs,
+                sort: 'fpts',
+                path: [],
+                inverted: false,
+            },
+            weekMissedHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.weekMissedHighs,
+                sort: 'fpts',
+                path: [],
+                inverted: false,
+            },
+            overallMissedHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.overallMissedHighs,
+                sort: 'real',
+                path: ['fpts', 'bench'],
+                inverted: false,
+            },
+            overallHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.overallHighs,
+                sort: 'real',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            gamesHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.gamesHighs,
+                sort: 'starters',
+                path: ['weeks'],
+                inverted: false,
+            },
+            weekOvers: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.weekOvers,
+                sort: 'projDiff',
+                path: [],
+                inverted: false,
+            },
+            weekUnders: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.weekUnders,
+                sort: 'projDiff',
+                path: [],
+                inverted: true,
+            },
+            seasonOvers: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.seasonOvers,
+                sort: 'diff',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            seasonUnders: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].players.seasonUnders,
+                sort: 'diff',
+                path: ['fpts', 'starters'],
+                inverted: true,
+            },
+        },
+        positions: {},
+        acquisitions: {},
+    }
+    for(const position in records.recordArrays.managers.alltime.regular[recordManID].positions) {
+        displayRecords.positions[position] = {
+            periodHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].periodHighs,
+                sort: 'real',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            weekHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].weekHighs,
+                sort: 'fpts',
+                path: [],
+                inverted: false,
+            },
+            weekMissedHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].weekMissedHighs,
+                sort: 'fpts',
+                path: [],
+                inverted: false,
+            },
+            overallMissedHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].overallMissedHighs,
+                sort: 'real',
+                path: ['fpts', 'bench'],
+                inverted: false,
+            },
+            gamesHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].gamesHighs,
+                sort: 'starters',
+                path: ['weeks'],
+                inverted: false,
+            },
+            overallHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].overallHighs,
+                sort: 'real',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            weekOvers: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].weekOvers,
+                sort: 'projDiff',
+                path: [],
+                inverted: false,
+            },
+            weekUnders: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].weekUnders,
+                sort: 'projDiff',
+                path: [],
+                inverted: true,
+            },
+            seasonOvers: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].seasonOvers,
+                sort: 'diff',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            seasonUnders: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].positions[position].seasonUnders,
+                sort: 'diff',
+                path: ['fpts', 'starters'],
+                inverted: true,
+            },
+        }
+    }
+    for(const transType in records.recordArrays.managers.alltime.regular[recordManID].acquisitions) {
+        displayRecords.acquisitions[transType] = {
+            periodHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].periodHighs,
+                sort: 'real',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            weekHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].weekHighs,
+                sort: 'fpts',
+                path: [],
+                inverted: false,
+            },
+            weekMissedHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].weekMissedHighs,
+                sort: 'fpts',
+                path: [],
+                inverted: false,
+            },
+            overallMissedHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].overallMissedHighs,
+                sort: 'real',
+                path: ['fpts', 'bench'],
+                inverted: false,
+            },
+            gamesHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].gamesHighs,
+                sort: 'starters',
+                path: ['weeks'],
+                inverted: false,
+            },
+            overallHighs: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].overallHighs,
+                sort: 'real',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            weekOvers: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].weekOvers,
+                sort: 'projDiff',
+                path: [],
+                inverted: false,
+            },
+            weekUnders: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].weekUnders,
+                sort: 'projDiff',
+                path: [],
+                inverted: true,
+            },
+            seasonOvers: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].seasonOvers,
+                sort: 'diff',
+                path: ['fpts', 'starters'],
+                inverted: false,
+            },
+            seasonUnders: {
+                stats: records.recordArrays.managers.alltime.regular[recordManID].acquisitions[transType].seasonUnders,
+                sort: 'diff',
+                path: ['fpts', 'starters'],
+                inverted: true,
+            },
+        }
     }
 
-    const refreshRecords = async () => {
-        const newRecords = await getManagerRecords(managerrecords);
-        managerrecords.update(() => newRecords);
-        managerRecords = newRecords;
-        refreshTables(managerRecords);
-    }
-  
-    refreshRecords(managerrecords);
+    const refreshTables = (newPeriod, newMaster, newYear, newPosition, newAcquisition) => {
 
-    const refreshTables = () => {
-        if(managerRecords) {
-            displayManagerLeft = {
-                info: managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][recordManID - 1]?.manager || managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][recordManID + 1].manager,
-                recordManID,
-                wins: 0,
-                ties: 0,
-                winPerc: 0,
-                epeWins: 0,
-                epeTies: 0,
-                epePerc: 0,
-                fpts: 0,
-                fptspg: 0,
-                matchups: [],
-                specialMatchups: {
-                    highScore: null,
-                    lowScore: null,
-                    bestBlowout: null,
-                    worstBlowout: null,
-                    bestNailbiter: null,
-                    worstNailbiter: null,
-                },
+        displayManagerLeft = {
+            info: records.allManagers[recordManID],
+            recordManID,
+        }
+        managerChoicesLeft = [];
+        managerChoicesLeft.push(displayManagerLeft);
+
+        for(const key in displayRecords) {
+            if(newMaster == 'yearly' && (key == 'periodHighs' || key == 'periodLows')) continue;
+            if(displayRecords[key].stats) {
+                displayRecords[key].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID][key] : records.recordArrays.managers.alltime[newPeriod][recordManID][key];
+            } else {
+                for(const key2 in displayRecords[key]) {
+                    if(displayRecords[key][key2].stats) {
+                        if((newPosition != 'ALL' || newAcquisition != 'ALL') && key == 'players') {
+                            if(newPosition != 'ALL') {
+                                displayRecords[key][key2].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID].positions[newPosition][key2] : records.recordArrays.managers.alltime[newPeriod][recordManID].positions[newPosition][key2];
+                            } else if(newAcquisition != 'ALL') {
+                                displayRecords[key][key2].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID].acquisitions[newAcquisition][key2] : records.recordArrays.managers.alltime[newPeriod][recordManID].acquisitions[newAcquisition][key2];
+                            } 
+                        } else {
+                            displayRecords[key][key2].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID][key][key2] : records.recordArrays.managers.alltime[newPeriod][recordManID][key][key2];
+                        }
+                    } else {
+                        for(const key3 in displayRecords[key][key2]) {
+                            if(displayRecords[key][key2][key3].stats) {
+                                displayRecords[key][key2][key3].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID][key][key2][key3] : records.recordArrays.managers.alltime[newPeriod][recordManID][key][key2][key3];
+                            } else {
+                                for(const key4 in displayRecords[key][key2][key3]) {
+                                    if(key3 == 'leagueAverages') {
+                                        displayRecords[key][key2][key3][key4].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID][key][key3][key2][key4] : records.recordArrays.managers.alltime[newPeriod][recordManID][key][key3][key2][key4];
+
+                                    } else {
+                                        displayRecords[key][key2][key3][key4].stats = newMaster == 'yearly' ? records.recordArrays.managers.years[newYear][newPeriod][recordManID][key][key2][key3][key4] : records.recordArrays.managers.alltime[newPeriod][recordManID][key][key2][key3][key4];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } 
             }
-
-            managerChoicesLeft = [];
-            managerChoicesLeft.push({
-                info: managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][recordManID - 1]?.manager || managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][recordManID + 1].manager,
-                recordManID,
-            })
-
-
-            if(displayStats == 'regular') {
-                setRegularTable(managerRecords, displayType, displayYear, displayPositionRecord);
-            } else if(displayStats == 'playoffs') {
-                setPlayoffsTable(managerRecords, displayType, displayYear, displayPositionRecord);
-            } else if(displayStats == 'combined') {
-                setCombinedTable(managerRecords, displayType, displayYear, displayPositionRecord);
-            }
-        }   
-    }
-
-    const setRegularTable = (managerRecords, displayType, displayYear, displayPositionRecord) => {
-        recordPrefix = "Regular Season";
-        selection = 'regular';
-        showEmpty = false;
-        headToHeads = [];
-        headShowTies = false;
+        }
         
-        if(displayType == 'alltime') {
-            masterPrefix = "All-Time";
-            masterSelection = 'alltime';
-            weekBests = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].week_Best;
-            weekWorsts = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].week_Worst;
-            periodBests = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].period_Best;
-            periodWorsts = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].period_Worst;
-            blowoutBests = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].blowout_Best;
-            blowoutWorsts = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].blowout_Worst;
-            narrowBests = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].narrow_Best;
-            narrowWorsts = managerRecords.managerRecordArrays.alltime.regularSeason[recordManID].narrow_Worst;
-
-            headToHeadRecords = managerRecords.headToHeadRecords.regularSeason.alltime;
-            managerPlayerRecords = managerRecords.playerPositionRecords.alltime.regularSeason[recordManID];
-
-            if(displayPositionRecord == 'ALL') {
-                playerWeekBests = managerRecords.managerRecordArrays.alltime.regularSeason.players[recordManID].week_Best;
-                playerPeriodBests = managerRecords.managerRecordArrays.alltime.regularSeason.players[recordManID].period_Best;
-                playerWeekMissedBests = managerRecords.managerRecordArrays.alltime.regularSeason.players[recordManID].week_MissedBest;
-            } else {
-                playerWeekBests = managerRecords.playerPositionRecords.alltime.regularSeason[recordManID][displayPositionRecord].week_Top;
-                playerPeriodBests = managerRecords.playerPositionRecords.alltime.regularSeason[recordManID][displayPositionRecord].period_Top;
-                playerWeekMissedBests = managerRecords.playerPositionRecords.alltime.regularSeason[recordManID][displayPositionRecord].week_MissedTop;
-            }
-
-            for(const opponent in managerRecords.headToHeadRecords.regularSeason.alltime[recordManID]) {
-                if(managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][opponent].winPerc >= 0) {
-                    headToHeads.push(managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][opponent]);
-                }
-                if(managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][opponent].ties > 0) {
-                    headShowTies = true;
-                }
-                if(managerRecords.headToHeadRecords.regularSeason.alltime[recordManID][opponent].epeTies > 0) {
-                    headShowTiesEPE = true;
-                }
-            }
-            headToHeads = headToHeads.sort((a, b) => b.winPerc - a.winPerc);
-
-            
-
-        } else if(displayType == 'yearly') {
-            masterPrefix = displayYear;
-            masterSelection = 'yearly';
-            weekBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].week_Best;
-            weekWorsts = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].week_Worst;
-            periodBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].period_Best;
-            periodWorsts = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].period_Worst;
-            blowoutBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].blowout_Best;
-            blowoutWorsts = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].blowout_Worst;
-            narrowBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].narrow_Best;
-            narrowWorsts = managerRecords.managerRecordArrays.years[displayYear].regularSeason[recordManID].narrow_Worst;
-
-            managerPlayerRecords = managerRecords.playerPositionRecords.years[displayYear].regularSeason[recordManID];
-
-            if(displayPositionRecord == 'ALL') {
-                playerWeekBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason.players[recordManID].week_Best;
-                playerPeriodBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason.players[recordManID].period_Best;
-                playerWeekMissedBests = managerRecords.managerRecordArrays.years[displayYear].regularSeason.players[recordManID].week_MissedBest;
-            } else {
-                playerWeekBests = managerRecords.playerPositionRecords.years[displayYear].regularSeason[recordManID][displayPositionRecord].week_Top;
-                playerPeriodBests = managerRecords.playerPositionRecords.years[displayYear].regularSeason[recordManID][displayPositionRecord].period_Top;
-                playerWeekMissedBests = managerRecords.playerPositionRecords.years[displayYear].regularSeason[recordManID][displayPositionRecord].week_MissedTop;
-            }
-
-            headToHeadRecords = managerRecords.headToHeadRecords.regularSeason.years[displayYear];
-
-            for(const opponent in managerRecords.headToHeadRecords.regularSeason.years[displayYear][recordManID]) {
-                if(managerRecords.headToHeadRecords.regularSeason.years[displayYear][recordManID][opponent].winPerc >= 0) {
-                    headToHeads.push(managerRecords.headToHeadRecords.regularSeason.years[displayYear][recordManID][opponent]);
-                }
-                if(managerRecords.headToHeadRecords.regularSeason.years[displayYear][recordManID][opponent].ties > 0) {
-                    headShowTies = true;
-                }
-                if(managerRecords.headToHeadRecords.regularSeason.years[displayYear][recordManID][opponent].epeTies > 0) {
-                    headShowTiesEPE = true;
-                }
-            }
-            headToHeads = headToHeads.sort((a, b) => b.winPerc - a.winPerc);
-        }
+        headToHeadRecords = newMaster == 'yearly' ? records.headToHeadRecords[newPeriod].years[newYear] : records.headToHeadRecords[newPeriod].alltime;
+        positionsArray = newMaster == 'yearly' ? records.rosterPositions.years[newYear] : records.rosterPositions.alltime;
+        showTies.headTable.EPE = displayRecords.headToHeads.stats.find(r => r.outcomes.EPE.T > 0) ? true : false;
+        showTies.headTable.match = displayRecords.headToHeads.stats.find(r => r.outcomes.match.T > 0) ? true : false;
+        showTies.headTable.iq = displayRecords.headToHeads.stats.find(r => r.outcomes.iq.T > 0) ? true : false;
+        showTies.headTable.iqEPE = displayRecords.headToHeads.stats.find(r => r.outcomes.iqEPE.T > 0) ? true : false;
+        showTies.headTable.bball = displayRecords.headToHeads.stats.find(r => r.outcomes.bball.T > 0) ? true : false;
+        showTies.headTable.bballEPE = displayRecords.headToHeads.stats.find(r => r.outcomes.bballEPE.T > 0) ? true : false;
     }
+    $: refreshTables(selection, masterSelection, displayYear, displayPositionRecord, displayAcquisition);
 
-    const setPlayoffsTable = (managerRecords, displayType, displayYear, displayPositionRecord) => {
-        recordPrefix = "Playoffs";
-        selection = 'playoffs';
-        headToHeads = [];
-        headShowTies = false;
 
-        if(displayType == 'alltime' && managerRecords.managerRecordArrays.alltime.playoffs[recordManID]) {
-            showEmpty = false;
-            masterPrefix = "All-Time";
-            masterSelection = 'alltime';
-            weekBests = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].week_Best;
-            weekWorsts = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].week_Worst;
-            periodBests = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].period_Best;
-            periodWorsts = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].period_Worst;
-            blowoutBests = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].blowout_Best;
-            blowoutWorsts = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].blowout_Worst;
-            narrowBests = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].narrow_Best;
-            narrowWorsts = managerRecords.managerRecordArrays.alltime.playoffs[recordManID].narrow_Worst;  
-
-            managerPlayerRecords = managerRecords.playerPositionRecords.alltime.playoffs[recordManID];
-
-            if(displayPositionRecord == 'ALL') {
-                playerWeekBests = managerRecords.managerRecordArrays.alltime.playoffs.players[recordManID].week_Best;
-                playerPeriodBests = managerRecords.managerRecordArrays.alltime.playoffs.players[recordManID].period_Best;
-                playerWeekMissedBests = managerRecords.managerRecordArrays.alltime.playoffs.players[recordManID].week_MissedBest;
-            } else {
-                playerWeekBests = managerRecords.playerPositionRecords.alltime.playoffs[recordManID][displayPositionRecord].week_Top;
-                playerPeriodBests = managerRecords.playerPositionRecords.alltime.playoffs[recordManID][displayPositionRecord].period_Top;
-                playerWeekMissedBests = managerRecords.playerPositionRecords.alltime.playoffs[recordManID][displayPositionRecord].week_MissedTop;
-            }
-
-            headToHeadRecords = managerRecords.headToHeadRecords.playoffs.alltime;
-
-            for(const opponent in managerRecords.headToHeadRecords.playoffs.alltime[recordManID]) {
-                if(managerRecords.headToHeadRecords.playoffs.alltime[recordManID][opponent].winPerc >= 0) {
-                    headToHeads.push(managerRecords.headToHeadRecords.playoffs.alltime[recordManID][opponent]);
-                }
-                if(managerRecords.headToHeadRecords.playoffs.alltime[recordManID][opponent].ties > 0) {
-                    headShowTies = true;
-                }
-                if(managerRecords.headToHeadRecords.playoffs.alltime[recordManID][opponent].epeTies > 0) {
-                    headShowTiesEPE = true;
-                }
-            }
-            headToHeads = headToHeads.sort((a, b) => b.winPerc - a.winPerc);
-        } else if(displayType == 'yearly' && managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID]) {
-            showEmpty = false;
-            masterPrefix = displayYear;
-            masterSelection = 'yearly';
-            weekBests = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].week_Best;
-            weekWorsts = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].week_Worst;
-            periodBests = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].period_Best;
-            periodWorsts = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].period_Worst;
-            blowoutBests = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].blowout_Best;
-            blowoutWorsts = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].blowout_Worst;
-            narrowBests = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].narrow_Best;
-            narrowWorsts = managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID].narrow_Worst;
-
-            managerPlayerRecords = managerRecords.playerPositionRecords.years[displayYear].playoffs[recordManID];
-
-            if(displayPositionRecord == 'ALL') {
-                playerWeekBests = managerRecords.managerRecordArrays.years[displayYear].playoffs.players[recordManID].week_Best;
-                playerPeriodBests = managerRecords.managerRecordArrays.years[displayYear].playoffs.players[recordManID].period_Best;
-                playerWeekMissedBests = managerRecords.managerRecordArrays.years[displayYear].playoffs.players[recordManID].week_MissedBest;
-            } else {
-                playerWeekBests = managerRecords.playerPositionRecords.years[displayYear].playoffs[recordManID][displayPositionRecord].week_Top;
-                playerPeriodBests = managerRecords.playerPositionRecords.years[displayYear].playoffs[recordManID][displayPositionRecord].period_Top;
-                playerWeekMissedBests = managerRecords.playerPositionRecords.years[displayYear].playoffs[recordManID][displayPositionRecord].week_MissedTop;
-            }
-
-            headToHeadRecords = managerRecords.headToHeadRecords.playoffs.years[displayYear];
-
-            for(const opponent in managerRecords.headToHeadRecords.playoffs.years[displayYear][recordManID]) {
-                if(managerRecords.headToHeadRecords.playoffs.years[displayYear][recordManID][opponent].winPerc >= 0) {
-                    headToHeads.push(managerRecords.headToHeadRecords.playoffs.years[displayYear][recordManID][opponent]);
-                }
-                if(managerRecords.headToHeadRecords.playoffs.years[displayYear][recordManID][opponent].ties > 0) {
-                    headShowTies = true;
-                }
-                if(managerRecords.headToHeadRecords.playoffs.years[displayYear][recordManID][opponent].epeTies > 0) {
-                    headShowTiesEPE = true;
-                }
-            }
-            headToHeads = headToHeads.sort((a, b) => b.winPerc - a.winPerc);
-        } else if(displayType == 'alltime' && !managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID]) {
-            showEmpty = true;
-            emptyMessage = "No Playoff Records Yet...";
-            masterSelection = 'alltime';
-            masterPrefix = "All-Time";
-        } else if(displayType == 'yearly' && !managerRecords.managerRecordArrays.years[displayYear].playoffs[recordManID]) {
-            showEmpty = true;
-            emptyMessage = `No Playoff Records for ${displayYear}...`;
-            masterSelection = 'yearly';
-            masterPrefix = displayYear;
-        }
-    }
-
-    const setCombinedTable = (managerRecords, displayType, displayYear, displayPositionRecord) => {
-        recordPrefix = "Combined";
-        selection = 'combined';
-        showEmpty = false;
-        headToHeads = [];
-        headShowTies = false;
-
-        if(displayType == 'alltime') {
-            masterPrefix = "All-Time";
-            masterSelection = 'alltime';
-            weekBests = managerRecords.managerRecordArrays.alltime.combined[recordManID].week_Best;
-            weekWorsts = managerRecords.managerRecordArrays.alltime.combined[recordManID].week_Worst;
-            periodBests = managerRecords.managerRecordArrays.alltime.combined[recordManID].period_Best;
-            periodWorsts = managerRecords.managerRecordArrays.alltime.combined[recordManID].period_Worst;
-            blowoutBests = managerRecords.managerRecordArrays.alltime.combined[recordManID].blowout_Best;
-            blowoutWorsts = managerRecords.managerRecordArrays.alltime.combined[recordManID].blowout_Worst;
-            narrowBests = managerRecords.managerRecordArrays.alltime.combined[recordManID].narrow_Best;
-            narrowWorsts = managerRecords.managerRecordArrays.alltime.combined[recordManID].narrow_Worst;
-
-            managerPlayerRecords = managerRecords.playerPositionRecords.alltime.combined[recordManID];
-
-            if(displayPositionRecord == 'ALL') {
-                playerWeekBests = managerRecords.managerRecordArrays.alltime.combined.players[recordManID].week_Best;
-                playerPeriodBests = managerRecords.managerRecordArrays.alltime.combined.players[recordManID].period_Best;
-                playerWeekMissedBests = managerRecords.managerRecordArrays.alltime.combined.players[recordManID].week_MissedBest;
-            } else {
-                playerWeekBests = managerRecords.playerPositionRecords.alltime.combined[recordManID][displayPositionRecord].week_Top;
-                playerPeriodBests = managerRecords.playerPositionRecords.alltime.combined[recordManID][displayPositionRecord].period_Top;
-                playerWeekMissedBests = managerRecords.playerPositionRecords.alltime.combined[recordManID][displayPositionRecord].week_MissedTop;
-            }
-
-            headToHeadRecords = managerRecords.headToHeadRecords.combined.alltime;
-
-            for(const opponent in managerRecords.headToHeadRecords.combined.alltime[recordManID]) {
-                if(managerRecords.headToHeadRecords.combined.alltime[recordManID][opponent].winPerc >= 0) {
-                    headToHeads.push(managerRecords.headToHeadRecords.combined.alltime[recordManID][opponent]);
-                }
-                if(managerRecords.headToHeadRecords.combined.alltime[recordManID][opponent].ties > 0) {
-                    headShowTies = true;
-                }
-                if(managerRecords.headToHeadRecords.combined.alltime[recordManID][opponent].epeTies > 0) {
-                    headShowTiesEPE = true;
-                }
-            }
-            headToHeads = headToHeads.sort((a, b) => b.winPerc - a.winPerc);
-        } else if(displayType == 'yearly') {
-            masterPrefix = displayYear;
-            masterSelection = 'yearly';
-            weekBests = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].week_Best;
-            weekWorsts = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].week_Worst;
-            periodBests = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].period_Best;
-            periodWorsts = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].period_Worst;
-            blowoutBests = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].blowout_Best;
-            blowoutWorsts = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].blowout_Worst;
-            narrowBests = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].narrow_Best;
-            narrowWorsts = managerRecords.managerRecordArrays.years[displayYear].combined[recordManID].narrow_Worst;
-
-            managerPlayerRecords = managerRecords.playerPositionRecords.years[displayYear].combined[recordManID];
-
-            if(displayPositionRecord == 'ALL') {
-                playerWeekBests = managerRecords.managerRecordArrays.years[displayYear].combined.players[recordManID].week_Best;
-                playerPeriodBests = managerRecords.managerRecordArrays.years[displayYear].combined.players[recordManID].period_Best;
-                playerWeekMissedBests = managerRecords.managerRecordArrays.years[displayYear].combined.players[recordManID].week_MissedBest;
-            } else {
-                playerWeekBests = managerRecords.playerPositionRecords.years[displayYear].combined[recordManID][displayPositionRecord].week_Top;
-                playerPeriodBests = managerRecords.playerPositionRecords.years[displayYear].combined[recordManID][displayPositionRecord].period_Top;
-                playerWeekMissedBests = managerRecords.playerPositionRecords.years[displayYear].combined[recordManID][displayPositionRecord].week_MissedTop;
-            }
-
-            headToHeadRecords = managerRecords.headToHeadRecords.combined.years[displayYear];
-
-            for(const opponent in managerRecords.headToHeadRecords.combined.years[displayYear][recordManID]) {
-                if(managerRecords.headToHeadRecords.combined.years[displayYear][recordManID][opponent].winPerc >= 0) {
-                    headToHeads.push(managerRecords.headToHeadRecords.combined.years[displayYear][recordManID][opponent]);
-                }
-                if(managerRecords.headToHeadRecords.combined.years[displayYear][recordManID][opponent].ties > 0) {
-                    headShowTies = true;
-                }
-                if(managerRecords.headToHeadRecords.combined.years[displayYear][recordManID][opponent].epeTies > 0) {
-                    headShowTiesEPE = true;
-                }
-            }
-            headToHeads = headToHeads.sort((a, b) => b.winPerc - a.winPerc);
-        }
-    }
-
-    let displayStats;
-    const changeSelection = (selection) => {
-        displayStats = selection;
-        refreshTables(displayStats);
-    }
-    $: changeSelection(selection);
-
-    let displayType;
-    const changeMasterSelection = (masterSelection) => {
-        displayType = masterSelection;
-        refreshTables(displayType);
-    }
-    $: changeMasterSelection(masterSelection);
-
-    let displayYear;
-    const changeYear = (selectedYear) => {
-        displayYear = selectedYear;
-        refreshTables(displayYear);
-    }
-    $: changeYear(selectedYear);
-
-    let allManagerChoices = [];
     let allMatchups = [];
-    let selectedMatchup;
-
-    let displayManagerRight;
- 
-    const getHead = (headToHeadRecords) => {
-        allManagerChoices = [];
-        for(const manager in headToHeadRecords) {
-            if(manager != recordManID && headToHeadRecords[manager][recordManID].epeWins + headToHeadRecords[manager][recordManID].epeTies + headToHeadRecords[manager][recordManID].epeLosses > 0) {
-                allManagerChoices.push({
-                    info: headToHeadRecords[manager][recordManID].manager,
-                    recordManID: manager,
-                });
-            }
-        }
-        managerChoicesRight = allManagerChoices;
-        displayManagerRight = null;
-        allMatchups = [];
-        selectedMatchup = null;
-
-        return allManagerChoices;
-    }
-    $: getHead(headToHeadRecords);
-
-    managerChoicesRight = getHead(headToHeadRecords);
-
-    let headToHeadShowTies = {
-        regular: false,
-        epe: false,
-    }
+    let displayManagerRight = {};
+    let displayManagerLeft = {};
 
     const changeManager = (newManagerRight, headToHeadRecords) => {
 
         if(newManagerRight) {
-            displayManagerLeft.wins = headToHeadRecords[recordManID][newManagerRight].wins;
-            displayManagerLeft.ties = headToHeadRecords[recordManID][newManagerRight].ties;
-            displayManagerLeft.fpts = headToHeadRecords[recordManID][newManagerRight].fpts;
-            displayManagerLeft.fptspg = headToHeadRecords[recordManID][newManagerRight].fptspg;
-            displayManagerLeft.epeWins = headToHeadRecords[recordManID][newManagerRight].epeWins;
-            displayManagerLeft.epeTies = headToHeadRecords[recordManID][newManagerRight].epeTies;
-            displayManagerLeft.winPerc = headToHeadRecords[recordManID][newManagerRight].winPerc;
-            displayManagerLeft.epePerc = headToHeadRecords[recordManID][newManagerRight].epePerc;
 
-            displayManagerLeft.matchups = headToHeadRecords[recordManID][newManagerRight].matchups;
-
-            displayManagerLeft.specialMatchups.highScore = headToHeadRecords[recordManID][newManagerRight].highScore;
-            displayManagerLeft.specialMatchups.lowScore = headToHeadRecords[recordManID][newManagerRight].lowScore;
-            displayManagerLeft.specialMatchups.bestBlowout = headToHeadRecords[recordManID][newManagerRight].bestBlowout;
-            displayManagerLeft.specialMatchups.worstBlowout = headToHeadRecords[recordManID][newManagerRight].worstBlowout;
-            displayManagerLeft.specialMatchups.bestNailbiter = headToHeadRecords[recordManID][newManagerRight].bestNailbiter;
-            displayManagerLeft.specialMatchups.worstNailbiter = headToHeadRecords[recordManID][newManagerRight].worstNailbiter;
-
-            if(displayManagerLeft.ties > 0) {
-                headToHeadShowTies.regular = true;
-            }
-            if(displayManagerLeft.epeTies > 0) {
-                headToHeadShowTies.epe = true;
-            }
-        
             displayManagerRight = {
-                info: headToHeadRecords[newManagerRight][recordManID].manager,
+                info: headToHeadRecords[recordManID][newManagerRight].oppManager,
                 recordManID: newManagerRight,
-                wins: headToHeadRecords[newManagerRight][recordManID].wins,
-                ties: headToHeadRecords[newManagerRight][recordManID].ties,
-                winPerc: headToHeadRecords[newManagerRight][recordManID].winPerc,
-                epeWins: headToHeadRecords[newManagerRight][recordManID].epeWins,
-                epeTies: headToHeadRecords[newManagerRight][recordManID].epeTies,
-                epePerc: headToHeadRecords[newManagerRight][recordManID].epePerc,
-                fpts: headToHeadRecords[newManagerRight][recordManID].fpts,
-                fptspg: headToHeadRecords[newManagerRight][recordManID].fptspg,
-                matchups: headToHeadRecords[newManagerRight][recordManID].matchups,
-                specialMatchups: {
-                    highScore: headToHeadRecords[newManagerRight][recordManID].highScore,
-                    lowScore: headToHeadRecords[newManagerRight][recordManID].lowScore,
-                    bestBlowout: headToHeadRecords[newManagerRight][recordManID].bestBlowout,
-                    worstBlowout: headToHeadRecords[newManagerRight][recordManID].worstBlowout,
-                    bestNailbiter: headToHeadRecords[newManagerRight][recordManID].bestNailbiter,
-                    worstNailbiter: headToHeadRecords[newManagerRight][recordManID].worstNailbiter,
-                },
             }
+            for(const key in headToHeadRecords[recordManID][newManagerRight]) {
+                if(key != 'oppRecordManID' && key != 'oppManager') {
+                    displayManagerLeft[key] = headToHeadRecords[recordManID][newManagerRight][key];
+                    displayManagerRight[key] = headToHeadRecords[newManagerRight][recordManID][key];
+                } 
+            }
+            showTies.headViewer.match = displayManagerLeft.outcomes.match.T > 0 ? true : false;
+            showTies.headViewer.EPE = displayManagerLeft.outcomes.EPE.T > 0 ? true : false;
+            showTies.headViewer.iqEPE = displayManagerLeft.outcomes.iqEPE.T > 0 ? true : false;
+            showTies.headViewer.iq = displayManagerLeft.outcomes.iq.T > 0 ? true : false;
+            showTies.headViewer.bball = displayManagerLeft.outcomes.bball.T > 0 ? true : false;
+            showTies.headViewer.bballEPE = displayManagerLeft.outcomes.bballEPE.T > 0 ? true : false;
 
             selectedMatchup = 0;
-                
-            
-        
             allMatchups = [];
             for(const matchup in displayManagerLeft.matchups) {
                 allMatchups.push({
-                    home: displayManagerLeft.matchups[matchup].matchupInfo,
-                    away: displayManagerRight.matchups[matchup].matchupInfo,
+                    home: displayManagerLeft.matchups[matchup],
+                    away: displayManagerRight.matchups[matchup],
                 })
             }
             displayMatchup = {
@@ -534,111 +385,92 @@
                 away: displayManagerRight.matchups[selectedMatchup],
             }
         }
-        
     }
+ 
+    const getHead = (headToHeadRecords) => {
+        managerChoicesRight = [];
+        for(const manager in headToHeadRecords) {
+            if(manager != recordManID && headToHeadRecords[manager][recordManID].outcomes.match.W + headToHeadRecords[manager][recordManID].outcomes.match.T + headToHeadRecords[manager][recordManID].outcomes.match.L > 0) {
+                managerChoicesRight.push({
+                    info: headToHeadRecords[recordManID][manager].oppManager,
+                    recordManID: manager,
+                });
+                if(!displayManagerRight.recordManID) {
+                    displayManagerRight = {
+                        info: headToHeadRecords[recordManID][manager].oppManager,
+                        recordManID: manager,
+                    }
+                }
+            }
+        }
+        changeManager(displayManagerRight.recordManID, headToHeadRecords);
+
+        return managerChoicesRight;
+    }
+    $: getHead(headToHeadRecords);
+
+    managerChoicesRight = getHead(headToHeadRecords);
 
     let displayMatchup;
-    const changeMatchup = (newMatchup) => {
-        if(displayManagerLeft && displayManagerRight) {
+    let displayWeekRecord = 'best';
+    let displaySeasonRecord = 'best';
+    let displayBlowoutRecord = 'won';
+    let displayNailbiterRecord = 'won';
+    let displayPlayerRecord = 'overall';
+
+    const toggles = (newMatchup = null, newPeriod = null, newMaster = null, newYear = null) => {
+        if(newMatchup && displayManagerLeft && displayManagerRight) {
             displayMatchup = {
                 home: displayManagerLeft.matchups[newMatchup],
                 away: displayManagerRight.matchups[newMatchup],
             }
-            selectedMatchup = newMatchup;
         }
-    }
-    $: changeMatchup(selectedMatchup);
+        if(newPeriod || newMaster) {
+            masterPrefix = newMaster == 'alltime' ? 'All-Time' : newYear;
 
-    let displayWeekRecord = 'best';
-    const changeWeekRecord = (weekType) => {
-        if(weekType == 'best') {
-            displayWeekRecord = 'best';
-        } else if(weekType == 'worst') {
-            displayWeekRecord = 'worst';
-        }
-    }
-    $: changeWeekRecord(displayWeekRecord);
-
-    let displaySeasonRecord = 'best';
-    const changeSeasonRecord = (seasonType) => {
-        if(seasonType == 'best') {
-            displaySeasonRecord = 'best';
-        } else if(seasonType == 'worst') {
-            displaySeasonRecord = 'worst';
-        }
-    }
-    $: changeSeasonRecord(displaySeasonRecord);
-
-    let displayBlowoutRecord = 'won';
-    const changeBlowoutRecord = (blowoutType) => {
-        if(blowoutType == 'won') {
-            displayBlowoutRecord = 'won';
-        } else if(blowoutType == 'lost') {
-            displayBlowoutRecord = 'lost';
-        }
-    }
-    $: changeBlowoutRecord(displayBlowoutRecord);
-
-    let displayNailbiterRecord = 'won';
-    const changeNailbiterRecord = (nailbiterType) => {
-        if(nailbiterType == 'won') {
-            displayNailbiterRecord = 'won';
-        } else if(nailbiterType == 'lost') {
-            displayNailbiterRecord = 'lost';
-        }
-    }
-    $: changeNailbiterRecord(displayNailbiterRecord);
-
-    let displayPlayerRecord = 'week';
-    const changePlayerRecord = (playerType) => {
-        if(playerType == 'week') {
-            displayPlayerRecord = 'week';
-        } else if(playerType == 'season') {
-            displayPlayerRecord = 'season';
-        } else if(playerType == 'bench') {
-            displayPlayerRecord = 'bench';
-        } 
-    }
-    $: changePlayerRecord(displayPlayerRecord);
-
-   
-    const getPositions = (managerPlayerRecords) => {
-        positionsArray = [];
-        for(const position in managerPlayerRecords) {
-            if(position != 'managerBests' && !positionsArray.includes(position) && managerPlayerRecords[position].week_Top.length > 0) {
-                positionsArray.push(position);
+            if(newPeriod == 'regular') {
+                recordPrefix = "Regular Season";
+                showEmpty = false;
+            } else if(newPeriod == 'playoffs') {
+                recordPrefix = "Playoffs";
+                if((newMaster == 'yearly' && !records.recordArrays.managers.years[newYear][newPeriod][recordManID]) || (newMaster == 'alltime' && !records.recordArrays.managers.alltime[newPeriod][recordManID])) {
+                    showEmpty = true;
+                    emptyMessage = displayType == 'yearly' ? `No Playoff Records for ${newYear}...` : 'No Playoff Records Yet...';
+                }
+            } else if(newPeriod == 'combined') {
+                recordPrefix = "Combined";
+                showEmpty = false;
             }
         }
-        return positionsArray;
     }
-    $: getPositions(managerPlayerRecords);
-    positionsArray = getPositions(managerPlayerRecords);
-    
-    const changePositionRecord = (positionType) => {
-        displayPositionRecord = positionType;
-        refreshRecords(displayPositionRecord);
-    }
-    $: changePositionRecord(displayPositionRecord);
+    $: toggles(selectedMatchup, selection, masterSelection, displayYear);
 
     let rand = 1;
-    const changeSort = (arrayName, recordArray, newKey, inverted = false) => {
-        let newRecordArray = recordArray;
-        if(displayObject[selection][arrayName].sort == newKey) {
-            if(displayObject[selection][arrayName].inverted == false) {
-                newRecordArray = newRecordArray.sort((a, b) => a[newKey] - b[newKey]);
-                displayObject[selection][arrayName].inverted = true;
+    const changeSort = (path, newRecordArray, newKey, newPath = null, inverted = false, newAltPath = null) => {
+        let applyPath = newAltPath && displayType == 'yearly' ? newAltPath : newPath ? newPath : null;
+        if(path.sort == newKey) {
+            if(path.inverted == false) {
+                newRecordArray.sort((a, b) => a[newKey] - b[newKey]);
+                path.inverted = true;
+                curSort.inverted = true;
             } else {
-                newRecordArray = newRecordArray.sort((a, b) => b[newKey] - a[newKey]);
-                displayObject[selection][arrayName].inverted = false;
+                newRecordArray.sort((a, b) => b[newKey] - a[newKey]);
+                path.inverted = false;
+                curSort.inverted = false;
             }
         } else {
-            if(inverted == false) {
-                newRecordArray = newRecordArray.sort((a, b) => b[newKey] - a[newKey]);
-                displayObject[selection][arrayName].sort = newKey;
-            } else {
-                newRecordArray = newRecordArray.sort((a, b) => a[newKey] - b[newKey]);
-                displayObject[selection][arrayName].sort = newKey;
+            if(applyPath) {
+                for(let i = 0; i < applyPath.length; i++) {
+                    newRecordArray = newRecordArray[applyPath[i]];
+                }
+                path.path = applyPath;
             }
+            if(inverted == false) {
+                newRecordArray.sort((a, b) => b[newKey] - a[newKey]);
+            } else {
+                newRecordArray.sort((a, b) => a[newKey] - b[newKey]);
+            }
+            path.sort = newKey;
         } 
         rand = rand * Math.random();
     }
@@ -711,6 +543,7 @@
         color: #999;
         font-size: 0.8em;
         line-height: 1.1em;
+        width: 100%;
     }
 
     .buttonHolder {
@@ -755,6 +588,51 @@
         position: relative;
         display: inline-flex;
         margin: 0 2.5%;
+    }
+
+    .pos {
+        display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 7px;
+        max-width: 28px;
+        min-width: 28px;
+		height: 28px;
+    }
+    .QB {
+		background-color: var(--QB);
+	}
+
+	.WR {
+		background-color: var(--WR);
+	}
+
+	.RB {
+		background-color: var(--RB);
+	}
+
+	.TE {
+		background-color: var(--TE);
+	}
+
+	.K {
+		background-color: var(--K);
+	}
+
+	.DEF {
+		background-color: var(--DEF);
+	}
+
+    .DL, .DE, .DT {
+        background-color: var(--DL);
+    }
+
+    .LB {
+        background-color: var(--LB);
+    }
+
+    .DB, .CB, .SS, .FS {
+        background-color: var(--DB);
     }
 
         /* Start button resizing */
@@ -958,7 +836,7 @@
         position: relative;
         display: inline-flex;
         width: 100%;
-        height: 20%;
+        height: 28%;
         background-color: var(--gcComponent);
     }
 
@@ -969,7 +847,8 @@
         width: 92%;
         padding: 0 4%;
         height: 2.5em;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .headToHeadRow:hover {
@@ -1018,6 +897,16 @@
         display: inline-flex;
         position: relative;
         width: 100%;
+        font-size: 0.85em;
+        line-height: 1em;
+        justify-content: flex-start;
+    }
+
+    .headToHeadSummaryHeader {
+        display: inline-flex;
+        position: relative;
+        width: 100%;
+        justify-content: center;
     }
 
     .matchupHolder {
@@ -1033,7 +922,7 @@
     .matchupWrap {
         display: block;
         width: 100%;
-        height: 73%;
+        height: 68%;
         overflow-x: hidden;
     }
 
@@ -1098,42 +987,50 @@
         cursor: pointer;
     }
 
+    .teamAvatar {
+        display: inline-flex;
+		align-items: center;
+		justify-content: center;
+        height: 35px;
+        max-height: 35px;
+    }
+
 </style>
 
 <div class="rankingsWrapper">
     <div class="mainBase">
         <div class="buttonHolder">
             <Group variant="outlined">
-                <Button class="selectionButtons" on:click={() => changeMasterSelection('alltime')} variant="{masterSelection == 'alltime' ? "raised" : "outlined"}">
+                <Button class="selectionButtons" on:click={() => masterSelection = 'alltime'} variant="{masterSelection == 'alltime' ? "raised" : "outlined"}">
                     <Label>All-Time</Label>
                 </Button>
-                <Button class="selectionButtons" on:click={() => changeMasterSelection('yearly')} variant="{masterSelection == 'yearly' ? "raised" : "outlined"}">
+                <Button class="selectionButtons" on:click={() => masterSelection = 'yearly'} variant="{masterSelection == 'yearly' ? "raised" : "outlined"}">
                     <Label>Yearly</Label>
                 </Button>
             </Group>
         </div>
         <div class="headingContainer">
             {#if masterSelection == 'yearly' && displayYear > firstYear}
-                <Icon class="material-icons changeYear" on:click={() => changeYear(displayYear - 1)}>chevron_left</Icon>
+                <Icon class="material-icons changeYear" on:click={() => displayYear = displayYear - 1}>chevron_left</Icon>
             {:else}
                 <span class="spacer" />
             {/if}  
             <div class="headingText" style="width: 60%;">{masterPrefix} Records</div>
             {#if masterSelection == 'yearly' && displayYear < currentYear}
-                <Icon class="material-icons changeYear" on:click={() => changeYear(displayYear + 1)}>chevron_right</Icon>
+                <Icon class="material-icons changeYear" on:click={() => displayYear = displayYear + 1}>chevron_right</Icon>
             {:else}
                 <span class="spacer" />
             {/if}  
         </div>
         <div class="buttonHolder">
             <Group variant="outlined">
-                <Button class="selectionButtons" on:click={() => changeSelection('regular')} variant="{selection == 'regular' ? "raised" : "outlined"}">
+                <Button class="selectionButtons" on:click={() => selection = 'regular'} variant="{selection == 'regular' ? "raised" : "outlined"}">
                     <Label>Regular Season</Label>
                 </Button>
-                <Button class="selectionButtons" on:click={() => changeSelection('playoffs')} variant="{selection == 'playoffs' ? "raised" : "outlined"}">
+                <Button class="selectionButtons" on:click={() => selection = 'playoffs'} variant="{selection == 'playoffs' ? "raised" : "outlined"}">
                     <Label>Playoffs</Label>
                 </Button>
-                <Button class="selectionButtons" on:click={() => changeSelection('combined')} variant="{selection == 'combined' ? "raised" : "outlined"}">
+                <Button class="selectionButtons" on:click={() => selection = 'combined'} variant="{selection == 'combined' ? "raised" : "outlined"}">
                     <Label>Combined</Label>
                 </Button>
             </Group>
@@ -1150,24 +1047,24 @@
             <div class="columnWrap" style="{masterSelection == 'yearly' ? "width: 98%;" : null}">
                 <div class="buttonHolder">
                     <Group variant="outlined">
-                        <Button class="selectionButtons" on:click={() => changeWeekRecord('best')} variant="{displayWeekRecord == 'best' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayWeekRecord = 'best'} variant="{displayWeekRecord == 'best' ? "raised" : "outlined"}">
                             <Label>Best</Label>
                         </Button>
-                        <Button class="selectionButtons" on:click={() => changeWeekRecord('worst')} variant="{displayWeekRecord == 'worst' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayWeekRecord = 'worst'} variant="{displayWeekRecord == 'worst' ? "raised" : "outlined"}">
                             <Label>Worst</Label>
                         </Button>
                     </Group>
                 </div>
-                {#if showEmpty == false}
+                {#if !showEmpty}
                     {#if displayWeekRecord == 'best'}
-                        {#if weekBests && weekBests.length}
+                        {#if displayRecords.weekHighs.stats && displayRecords.weekHighs.stats.length}
                             <DataTable class="playerTable" style="width: 450px;">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=4>
                                             <p>
                                                 Personal Best Week Scores<br>
-                                                {recordPrefix} 
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>  
                                     </Row>
@@ -1181,28 +1078,28 @@
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each weekBests as weekBest, ix}
+                                    {#each displayRecords.weekHighs.stats as weekBest, ix}
                                         <Row>
                                             <Cell>{ix + 1}</Cell>
                                             {#if masterSelection == 'alltime'}				
                                                 <Cell class="center">{weekBest.year}</Cell>
                                             {/if}
                                             <Cell class="center">{weekBest.week}</Cell>
-                                            <Cell class="center">{round(weekBest.fpts)}</Cell>
+                                            <Cell class="center">{round(weekBest.fpts.starters.real)}</Cell>
                                         </Row>
                                     {/each}
                                 </Body>
                             </DataTable>
                         {/if}
                     {:else if displayWeekRecord == 'worst'}
-                        {#if weekWorsts && weekWorsts.length}
+                        {#if displayRecords.weekLows.stats && displayRecords.weekLows.stats.length}
                             <DataTable class="playerTable" style="width: 450px;">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=4>
                                             <p>
                                                 Personal Worst Week Scores<br>
-                                                {recordPrefix} 
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>  
                                     </Row>
@@ -1216,14 +1113,14 @@
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each weekWorsts as weekWorst, ix}
+                                    {#each displayRecords.weekLows.stats as weekWorst, ix}
                                         <Row>
                                             <Cell>{ix + 1}</Cell>
                                             {#if masterSelection == 'alltime'}				
                                                 <Cell class="center">{weekWorst.year}</Cell>
                                             {/if}
                                             <Cell class="center">{weekWorst.week}</Cell>
-                                            <Cell class="center">{round(weekWorst.fpts)}</Cell>
+                                            <Cell class="center">{round(weekWorst.fpts.starters.real)}</Cell>
                                         </Row>
                                     {/each}
                                 </Body>
@@ -1238,24 +1135,24 @@
                 <div class="columnWrap">
                     <div class="buttonHolder">
                         <Group variant="outlined">
-                            <Button class="selectionButtons" on:click={() => changeSeasonRecord('best')} variant="{displaySeasonRecord == 'best' ? "raised" : "outlined"}">
+                            <Button class="selectionButtons" on:click={() => displaySeasonRecord = 'best'} variant="{displaySeasonRecord == 'best' ? "raised" : "outlined"}">
                                 <Label>Best</Label>
                             </Button>
-                            <Button class="selectionButtons" on:click={() => changeSeasonRecord('worst')} variant="{displaySeasonRecord == 'worst' ? "raised" : "outlined"}">
+                            <Button class="selectionButtons" on:click={() => displaySeasonRecord = 'worst'} variant="{displaySeasonRecord == 'worst' ? "raised" : "outlined"}">
                                 <Label>Worst</Label>
                             </Button>
                         </Group>
                     </div>
                     {#if showEmpty == false}
                         {#if displaySeasonRecord == 'best'}
-                            {#if periodBests && periodBests.length}
+                            {#if displayRecords.periodHighs.stats && displayRecords.periodHighs.stats.length}
                                 <DataTable class="playerTable" style="width: 450px;">
                                     <Head>
                                         <Row>
                                             <Cell class="header" colspan=4>
                                                 <p>
                                                     Personal Best Season-Long Scores<br>
-                                                    {recordPrefix} 
+                                                    {masterPrefix} - {recordPrefix} 
                                                 </p>
                                             </Cell>  
                                         </Row>
@@ -1266,16 +1163,16 @@
                                             {/if}
                                             <Cell class="header">
                                                 PF
-                                                <Icon class="material-icons changeSort" on:click={() => changeSort('periodBests', periodBests, 'fpts')}>filter_list</Icon>
+                                                <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.periodHighs, displayRecords.periodHighs.stats, 'real')}>filter_list</Icon>
                                             </Cell>
                                             <Cell class="header">
                                                 PPG
-                                                <Icon class="material-icons changeSort" on:click={() => changeSort('periodBests', periodBests, 'fptspg')}>filter_list</Icon>
+                                                <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.periodHighs, displayRecords.periodHighs.stats, 'realPPG')}>filter_list</Icon>
                                             </Cell>
                                         </Row>
                                     </Head>
                                     <Body>
-                                        {#each periodBests as periodBest, ix (rand * (ix + 1))}
+                                        {#each displayRecords.periodHighs.stats as periodBest, ix (rand * (ix + 1))}
                                             {#if rand == 0}
                                                 nothing
                                             {:else}
@@ -1284,8 +1181,8 @@
                                                     {#if masterSelection == 'alltime'}				
                                                         <Cell class="center">{periodBest.year}</Cell>
                                                     {/if}
-                                                    <Cell class="center">{round(periodBest.fpts)}</Cell>
-                                                    <Cell class="center">{round(periodBest.fptspg)}</Cell>
+                                                    <Cell class="center">{round(periodBest.fpts.starters.real)}</Cell>
+                                                    <Cell class="center">{round(periodBest.fpts.starters.realPPG)}</Cell>
                                                 </Row>
                                             {/if}
                                         {/each}
@@ -1293,14 +1190,14 @@
                                 </DataTable>
                             {/if}
                         {:else if displaySeasonRecord == 'worst'}
-                            {#if periodWorsts && periodWorsts.length}
+                            {#if displayRecords.periodLows.stats && displayRecords.periodLows.stats.length}
                                 <DataTable class="playerTable" style="width: 450px;">
                                     <Head>
                                         <Row>
                                             <Cell class="header" colspan=4>
                                                 <p>
                                                     Personal Worst Season-Long Scores<br>
-                                                    {recordPrefix} 
+                                                    {masterPrefix} - {recordPrefix} 
                                                 </p>
                                             </Cell>  
                                         </Row>
@@ -1311,16 +1208,16 @@
                                             {/if}
                                             <Cell class="header">
                                                 PF
-                                                <Icon class="material-icons changeSort" on:click={() => changeSort('periodWorsts', periodWorsts, 'fpts')}>filter_list</Icon>
+                                                <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.periodLows, displayRecords.periodLows.stats, 'real')}>filter_list</Icon>
                                             </Cell>
                                             <Cell class="header">
                                                 PPG
-                                                <Icon class="material-icons changeSort" on:click={() => changeSort('periodWorsts', periodWorsts, 'fptspg')}>filter_list</Icon>
+                                                <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.periodLows, displayRecords.periodLows.stats, 'realPPG')}>filter_list</Icon>
                                             </Cell>
                                         </Row>
                                     </Head>
                                     <Body>
-                                        {#each periodWorsts as periodWorst, ix (rand * (ix + 1))}
+                                        {#each displayRecords.periodLows.stats as periodWorst, ix (rand * (ix + 1))}
                                             {#if rand == 0}
                                                 nothing
                                             {:else}
@@ -1329,8 +1226,8 @@
                                                     {#if masterSelection == 'alltime'}				
                                                         <Cell class="center">{periodWorst.year}</Cell>
                                                     {/if}
-                                                    <Cell class="center">{round(periodWorst.fpts)}</Cell>
-                                                    <Cell class="center">{round(periodWorst.fptspg)}</Cell>
+                                                    <Cell class="center">{round(periodWorst.fpts.starters.real)}</Cell>
+                                                    <Cell class="center">{round(periodWorst.fpts.starters.realPPG)}</Cell>
                                                 </Row>
                                             {/if}
                                         {/each}
@@ -1352,51 +1249,59 @@
             <div class="columnWrap">
                 <div class="buttonHolder">
                     <Group variant="outlined">
-                        <Button class="selectionButtons" on:click={() => changeBlowoutRecord('won')} variant="{displayBlowoutRecord == 'won' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayBlowoutRecord = 'won'} variant="{displayBlowoutRecord == 'won' ? "raised" : "outlined"}">
                             <Label>Won</Label>
                         </Button>
-                        <Button class="selectionButtons" on:click={() => changeBlowoutRecord('lost')} variant="{displayBlowoutRecord == 'lost' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayBlowoutRecord = 'lost'} variant="{displayBlowoutRecord == 'lost' ? "raised" : "outlined"}">
                             <Label>Lost</Label>
                         </Button>
                     </Group>
                 </div>
                 {#if showEmpty == false}
                     {#if displayBlowoutRecord == 'won'}
-                        {#if blowoutBests && blowoutBests.length}
+                        {#if displayRecords.blowoutBests.stats && displayRecords.blowoutBests.stats.length}
                             <DataTable class="playerTable" style="width: 550px;">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=7>
                                             <p>
                                                 Top 10 Blowouts Won<br>
-                                                {recordPrefix} 
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
                                     <Row>
                                         <Cell class="header rank"></Cell>
-                                        <Cell class="header">PF</Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         <Cell class="header">Loser</Cell>
-                                        <Cell class="header">PA</Cell>
+                                        <Cell class="header">
+                                            PA
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         {#if masterSelection == 'alltime'}
                                             <Cell class="header">Year</Cell>
                                         {/if}
                                         <Cell class="header">Week</Cell>
-                                        <Cell class="header">Diff</Cell>
+                                        <Cell class="header">Margin</Cell>
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each blowoutBests as blowoutBest, ix}
+                                    {#each displayRecords.blowoutBests.stats as blowoutBest, ix}
                                         <Row>
                                             <Cell class="rank">{ix + 1}</Cell>
-                                            <Cell class="center" style="background-color: #0182c326;">{round(blowoutBest.fpts)}</Cell>
-                                            <Cell class="cellName" style="background-color: #7a7a7a33;" on:click={() => gotoManager(blowoutBest.againstRecordManID)}>
-                                                {blowoutBest.againstManager.realname}
+                                            <Cell class="center" style="background-color: #0182c326;">{round(blowoutBest.fpts.starters.real)} <div style="font-size: 0.9em">({round(blowoutBest.fpts.starters.proj)})</div></Cell>
+                                            <Cell class="cellName" style="background-color: #7a7a7a33;" on:click={() => gotoManager(blowoutBest.oppRecordManID)}>
+                                                {blowoutBest.oppManager.realname}
                                                 {#if masterSelection == 'yearly'}
-                                                    <div class="fantasyTeamName">({blowoutBest.againstManager.name})</div>
+                                                    <div class="fantasyTeamName">({blowoutBest.oppManager.name})</div>
                                                 {/if}
                                             </Cell>
-                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(blowoutBest.fptsAgainst)}</Cell>
+                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(blowoutBest.fpts.opp.real)} <div style="font-size: 0.9em">({round(blowoutBest.fpts.opp.proj)})</div></Cell>
                                             {#if masterSelection == 'alltime'}
                                                 <Cell class="center">{blowoutBest.year}</Cell>
                                             {/if}
@@ -1408,41 +1313,49 @@
                             </DataTable>
                         {/if}
                     {:else if displayBlowoutRecord == 'lost'}
-                        {#if blowoutWorsts && blowoutWorsts.length}
+                        {#if displayRecords.blowoutWorsts.stats && displayRecords.blowoutWorsts.stats.length}
                             <DataTable class="playerTable" style="width: 550px;">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=7>
                                             <p>
                                                 Top 10 Blowouts Lost<br>
-                                                {recordPrefix} 
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
                                     <Row>
                                         <Cell class="header rank"></Cell>
-                                        <Cell class="header">PF</Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         <Cell class="header">Winner</Cell>
-                                        <Cell class="header">PA</Cell>
+                                        <Cell class="header">
+                                            PA
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         {#if masterSelection == 'alltime'}
                                             <Cell class="header">Year</Cell>
                                         {/if}
                                         <Cell class="header">Week</Cell>
-                                        <Cell class="header">Diff</Cell>
+                                        <Cell class="header">Margin</Cell>
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each blowoutWorsts as blowoutWorst, ix}
+                                    {#each displayRecords.blowoutWorsts.stats as blowoutWorst, ix}
                                         <Row>
                                             <Cell class="rank">{ix + 1}</Cell>
-                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(blowoutWorst.fpts)}</Cell>
-                                            <Cell class="cellName" style="background-color: #229bd924;" on:click={() => gotoManager(blowoutWorst.againstRecordManID)}>
-                                                {blowoutWorst.againstManager.realname}
+                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(blowoutWorst.fpts.starters.real)} <div style="font-size: 0.9em">({round(blowoutWorst.fpts.starters.proj)})</div></Cell>
+                                            <Cell class="cellName" style="background-color: #229bd924;" on:click={() => gotoManager(blowoutWorst.oppRecordManID)}>
+                                                {blowoutWorst.oppManager.realname}
                                                 {#if masterSelection == 'yearly'}
-                                                    <div class="fantasyTeamName">({blowoutWorst.againstManager.name})</div>
+                                                    <div class="fantasyTeamName">({blowoutWorst.oppManager.name})</div>
                                                 {/if}
                                             </Cell>
-                                            <Cell class="center" style="background-color: #0182c326;">{round(blowoutWorst.fptsAgainst)}</Cell>
+                                            <Cell class="center" style="background-color: #0182c326;">{round(blowoutWorst.fpts.opp.real)} <div style="font-size: 0.9em">({round(blowoutWorst.fpts.opp.proj)})</div></Cell>
                                             {#if masterSelection == 'alltime'}
                                                 <Cell class="center">{blowoutWorst.year}</Cell>
                                             {/if}
@@ -1461,51 +1374,59 @@
             <div class="columnWrap">
                 <div class="buttonHolder">
                     <Group variant="outlined">
-                        <Button class="selectionButtons" on:click={() => changeNailbiterRecord('won')} variant="{displayNailbiterRecord == 'won' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayNailbiterRecord = 'won'} variant="{displayNailbiterRecord == 'won' ? "raised" : "outlined"}">
                             <Label>Won</Label>
                         </Button>
-                        <Button class="selectionButtons" on:click={() => changeNailbiterRecord('lost')} variant="{displayNailbiterRecord == 'lost' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayNailbiterRecord = 'lost'} variant="{displayNailbiterRecord == 'lost' ? "raised" : "outlined"}">
                             <Label>Lost</Label>
                         </Button>
                     </Group>
                 </div>
                 {#if showEmpty == false}
                     {#if displayNailbiterRecord == 'won'}
-                        {#if narrowBests && narrowBests.length}
+                        {#if displayRecords.narrowBests.stats && displayRecords.narrowBests.stats.length}
                             <DataTable class="playerTable" style="width: 550px;">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=7>
                                             <p>
                                                 Top 10 Nailbiters Won<br>
-                                                {recordPrefix} 
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
                                     <Row>
                                         <Cell class="header rank"></Cell>
-                                        <Cell class="header">PF</Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         <Cell class="header">Loser</Cell>
-                                        <Cell class="header">PF</Cell>
+                                        <Cell class="header">
+                                            PA
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         {#if masterSelection == 'alltime'}
                                             <Cell class="header">Year</Cell>
                                         {/if}
                                         <Cell class="header">Week</Cell>
-                                        <Cell class="header">Diff</Cell>
+                                        <Cell class="header">Margin</Cell>
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each narrowBests as narrowBest, ix}
+                                    {#each displayRecords.narrowBests.stats as narrowBest, ix}
                                         <Row>
                                             <Cell class="rank">{ix + 1}</Cell>
-                                            <Cell class="center" style="background-color: #0182c326;">{round(narrowBest.fpts)}</Cell>
-                                            <Cell class="cellName" style="background-color: #7a7a7a33;" on:click={() => gotoManager(narrowBest.againstRecordManID)}>
-                                                {narrowBest.againstManager.realname}
+                                            <Cell class="center" style="background-color: #0182c326;">{round(narrowBest.fpts.starters.real)} <div style="font-size: 0.9em">({round(narrowBest.fpts.starters.proj)})</div></Cell>
+                                            <Cell class="cellName" style="background-color: #7a7a7a33;" on:click={() => gotoManager(narrowBest.oppRecordManID)}>
+                                                {narrowBest.oppManager.realname}
                                                 {#if masterSelection == 'yearly'}
-                                                    <div class="fantasyTeamName">({narrowBest.againstManager.name})</div>
+                                                    <div class="fantasyTeamName">({narrowBest.oppManager.name})</div>
                                                 {/if}
                                             </Cell>
-                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(narrowBest.fptsAgainst)}</Cell>
+                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(narrowBest.fpts.opp.real)} <div style="font-size: 0.9em">({round(narrowBest.fpts.opp.proj)})</div></Cell>
                                             {#if masterSelection == 'alltime'}
                                                 <Cell class="center">{narrowBest.year}</Cell>
                                             {/if}
@@ -1517,41 +1438,49 @@
                             </DataTable>
                         {/if}
                     {:else if displayNailbiterRecord == 'lost'}
-                        {#if narrowWorsts && narrowWorsts.length}
+                        {#if displayRecords.narrowWorsts.stats && displayRecords.narrowWorsts.stats.length}
                             <DataTable class="playerTable" style="width: 550px;">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=7>
                                             <p>
                                                 Top 10 Nailbiters Lost<br>
-                                                {recordPrefix} 
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
                                     <Row>
                                         <Cell class="header rank"></Cell>
-                                        <Cell class="header">PF</Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         <Cell class="header">Winner</Cell>
-                                        <Cell class="header">PA</Cell>
+                                        <Cell class="header">
+                                            PA
+                                            <br>
+                                            (Proj)
+                                        </Cell>
                                         {#if masterSelection == 'alltime'}
                                             <Cell class="header">Year</Cell>
                                         {/if}
                                         <Cell class="header">Week</Cell>
-                                        <Cell class="header">Diff</Cell>
+                                        <Cell class="header">Margin</Cell>
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each narrowWorsts as narrowWorst, ix}
+                                    {#each displayRecords.narrowWorsts.stats as narrowWorst, ix}
                                         <Row>
                                             <Cell class="rank">{ix + 1}</Cell>
-                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(narrowWorst.fpts)}</Cell>
-                                            <Cell class="cellName" style="background-color: #229bd924;" on:click={() => gotoManager(narrowWorst.againstRecordManID)}>
-                                                {narrowWorst.againstManager.realname}
+                                            <Cell class="center" style="background-color: #6a6a6a33;">{round(narrowWorst.fpts.starters.real)} <div style="font-size: 0.9em">({round(narrowWorst.fpts.starters.proj)})</div></Cell>
+                                            <Cell class="cellName" style="background-color: #229bd924;" on:click={() => gotoManager(narrowWorst.oppRecordManID)}>
+                                                {narrowWorst.oppManager.realname}
                                                 {#if masterSelection == 'yearly'}
-                                                    <div class="fantasyTeamName">({narrowWorst.againstManager.name})</div>
+                                                    <div class="fantasyTeamName">({narrowWorst.oppManager.name})</div>
                                                 {/if}
                                             </Cell>
-                                            <Cell class="center" style="background-color: #0182c326;">{round(narrowWorst.fptsAgainst)}</Cell>
+                                            <Cell class="center" style="background-color: #0182c326;">{round(narrowWorst.fpts.opp.real)} <div style="font-size: 0.9em">({round(narrowWorst.fpts.opp.proj)})</div></Cell>
                                             {#if masterSelection == 'alltime'}
                                                 <Cell class="center">{narrowWorst.year}</Cell>
                                             {/if}
@@ -1575,39 +1504,230 @@
             <div class="columnWrap" style="width: 98%;">
                 <div class="buttonHolder">
                     <Group variant="outlined">
-                        <Button class="selectionButtons" on:click={() => changePlayerRecord('week')} variant="{displayPlayerRecord == 'week' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayPlayerRecord = 'overall'} variant="{displayPlayerRecord == 'overall' ? "raised" : "outlined"}">
+                            <Label>Overall</Label>
+                        </Button>
+                        <Button class="selectionButtons" on:click={() => displayPlayerRecord = 'week'} variant="{displayPlayerRecord == 'week' ? "raised" : "outlined"}">
                             <Label>Week</Label>
                         </Button>
-                        <Button class="selectionButtons" on:click={() => changePlayerRecord('season')} variant="{displayPlayerRecord == 'season' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayPlayerRecord = 'season'} variant="{displayPlayerRecord == 'season' ? "raised" : "outlined"}">
                             <Label>Season</Label>
                         </Button>
-                        <Button class="selectionButtons" on:click={() => changePlayerRecord('bench')} variant="{displayPlayerRecord == 'bench' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayPlayerRecord = 'breakouts'} variant="{displayPlayerRecord == 'breakouts' ? "raised" : "outlined"}">
+                            <Label>Breakouts</Label>
+                        </Button>
+                        <Button class="selectionButtons" on:click={() => displayPlayerRecord = 'busts'} variant="{displayPlayerRecord == 'busts' ? "raised" : "outlined"}">
+                            <Label>Busts</Label>
+                        </Button>
+                        <Button class="selectionButtons" on:click={() => displayPlayerRecord = 'bench'} variant="{displayPlayerRecord == 'bench' ? "raised" : "outlined"}">
                             <Label>Benchwarmers</Label>
                         </Button>
                     </Group>
                 </div>
                 <div class="buttonHolder" style="margin: 0.5em 0;">
                     <Group variant="outlined">
-                        <Button class="selectionButtons" on:click={() => changePositionRecord('ALL')} variant="{displayPositionRecord == 'ALL' ? "raised" : "outlined"}">
+                        <Button class="selectionButtons" on:click={() => displayPositionRecord = 'ALL'} variant="{displayPositionRecord == 'ALL' ? "raised" : "outlined"}">
                             <Label>ALL</Label>
                         </Button>
                         {#each positionsArray as position}
-                            <Button class="selectionButtons" on:click={() => changePositionRecord(position)} variant="{displayPositionRecord == position ? "raised" : "outlined"}">
+                            <Button class="selectionButtons" on:click={() => displayPositionRecord = position} variant="{displayPositionRecord == position ? "raised" : "outlined"}">
                                 <Label>{position}</Label>
                             </Button>
                         {/each}
                     </Group>
                 </div>
                 {#if showEmpty == false}
-                    {#if displayPlayerRecord == 'week'}
-                        {#if playerWeekBests && playerWeekBests.length}
+                    {#if displayPlayerRecord == 'overall'}
+                        {#if displayRecords.players.gamesHighs.stats && displayRecords.players.gamesHighs.stats.length}
+                            <DataTable class="playerTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=12>
+                                            <p>
+                                                Most Weeks Started – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>                  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" />
+                                        <Cell class="header">Player</Cell>
+                                        {#if displayPositionRecord == 'ALL'}
+                                            <Cell class="header">POS</Cell>
+                                        {/if}
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Seasons</Cell>
+                                        {/if}
+                                        <Cell class="header">
+                                            Led 
+                                            <br>
+                                            Team
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.gamesHighs, displayRecords.players.gamesHighs.stats, 'topStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Team
+                                            <br> 
+                                            Bust
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.gamesHighs, displayRecords.players.gamesHighs.stats, 'bottomStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Average
+                                            <br>
+                                            Team Rank
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.gamesHighs, displayRecords.players.gamesHighs.stats, 'starterRankAVG', [], true)}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.gamesHighs, displayRecords.players.gamesHighs.stats, 'real', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            PPG
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.gamesHighs, displayRecords.players.gamesHighs.stats, 'realPPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Starts
+                                            <br>
+                                            / Owned
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.gamesHighs, displayRecords.players.gamesHighs.stats, 'starters', ['weeks'])}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.gamesHighs.stats as player, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{player.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{player.playerInfo.fn} {player.playerInfo.ln}</Cell>
+                                                {#if displayPositionRecord == 'ALL'}
+                                                    <Cell class="center">
+                                                        <div class="pos {player.playerInfo.pos}">
+                                                            {player.playerInfo.pos}
+                                                        </div>
+                                                    </Cell>
+                                                {/if}
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{player.team.toLowerCase()}.png" alt="{player.team}">
+                                                </Cell>
+                                                {#if masterSelection == 'alltime'}
+                                                    <Cell class="center">{player.years.total}</Cell>
+                                                {/if}
+                                                <Cell class="center">{player.topStarters}</Cell>
+                                                <Cell class="center">{player.bottomStarters}</Cell>
+                                                <Cell class="center">{round(player.starterRankAVG)}</Cell>
+                                                <Cell class="center">{round(player.fpts.starters.real)}</Cell>
+                                                <Cell class="center">{round(player.fpts.starters.realPPG)}</Cell>
+                                                <Cell class="center">{player.weeks.starters} / {player.weeks.total}</Cell>
+                                            </Row>
+                                        {/if}
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                        
+                        {#if displayRecords.players.overallHighs.stats && displayRecords.players.overallHighs.stats.length}
+                            <DataTable class="playerTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=12>
+                                            <p>
+                                                Top Cumulative Scorers – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>                  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" />
+                                        <Cell class="header">Player</Cell>
+                                        {#if displayPositionRecord == 'ALL'}
+                                            <Cell class="header">POS</Cell>
+                                        {/if}
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Seasons</Cell>
+                                        {/if}
+                                        <Cell class="header">
+                                            Led 
+                                            <br>
+                                            Team
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallHighs, displayRecords.players.overallHighs.stats, 'topStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Team
+                                            <br> 
+                                            Bust
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallHighs, displayRecords.players.overallHighs.stats, 'bottomStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Average 
+                                            <br>
+                                            Team Rank
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallHighs, displayRecords.players.overallHighs.stats, 'starterRankAVG', [], true)}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Starts
+                                            <br>
+                                            / Owned
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallHighs, displayRecords.players.overallHighs.stats, 'starters', ['weeks'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallHighs, displayRecords.players.overallHighs.stats, 'real', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            PPG
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallHighs, displayRecords.players.overallHighs.stats, 'realPPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.overallHighs.stats as player, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{player.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{player.playerInfo.fn} {player.playerInfo.ln}</Cell>
+                                                {#if displayPositionRecord == 'ALL'}
+                                                    <Cell class="center">
+                                                        <div class="pos {player.playerInfo.pos}">
+                                                            {player.playerInfo.pos}
+                                                        </div>
+                                                    </Cell>
+                                                {/if}
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{player.team.toLowerCase()}.png" alt="{player.team}">
+                                                </Cell>
+                                                {#if masterSelection == 'alltime'}
+                                                    <Cell class="center">{player.years.total}</Cell>
+                                                {/if}
+                                                <Cell class="center">{player.topStarters}</Cell>
+                                                <Cell class="center">{player.bottomStarters}</Cell>
+                                                <Cell class="center">{round(player.starterRankAVG)}</Cell>
+                                                <Cell class="center">{player.weeks.starters} / {player.weeks.total}</Cell>
+                                                <Cell class="center">{round(player.fpts.starters.real)}</Cell>
+                                                <Cell class="center">{round(player.fpts.starters.realPPG)}</Cell>
+                                            </Row>
+                                        {/if}
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                    {:else if displayPlayerRecord == 'week'}
+                        {#if displayRecords.players.weekHighs.stats && displayRecords.players.weekHighs.stats.length}
                             <DataTable class="playerTable">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=8>
                                             <p>
-                                                Top 10 Week Scores - Players<br>
-                                                {recordPrefix} 
+                                                Top 10 Week Scores - {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
@@ -1627,34 +1747,36 @@
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each playerWeekBests as playerWeekBest, ix}
+                                    {#each displayRecords.players.weekHighs.stats as playerWeekBest, ix}
                                         <Row>
                                             <Cell class="rank">{ix + 1}</Cell>
-                                            <Cell class="playerAvatar playerInfo" style="{playerWeekBest.avatar}; background-color: var(--gcSelect); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                            <Cell class="playerAvatar playerInfo" style="background-image: url('{playerWeekBest.avatar}'); background-color: var(--gcSelect); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
                                             <Cell class="left">{playerWeekBest.playerInfo.fn} {playerWeekBest.playerInfo.ln}</Cell>
                                             {#if displayPositionRecord == 'ALL'}
                                                 <Cell class="center">{playerWeekBest.playerInfo.pos}</Cell>
                                             {/if}
-                                            <Cell class="center">{playerWeekBest.playerInfo.pos == 'DEF' ? playerWeekBest.playerID : playerWeekBest.nflInfo && playerWeekBest.nflInfo.espn.t[playerWeekBest.year].length > 1 ? nflTeams.find(t => t.espnAbbreviation == playerWeekBest.nflInfo.espn.t[playerWeekBest.year].find(w => w.firstWeek <= playerWeekBest.week && w.lastWeek >= playerWeekBest.week).team).sleeperID : playerWeekBest.playerInfo.wi[playerWeekBest.year][playerWeekBest.week] && playerWeekBest.playerInfo.wi[playerWeekBest.year][playerWeekBest.week].t ? playerWeekBest.playerInfo.wi[playerWeekBest.year][playerWeekBest.week].t : nflTeams.find(t => t.espnAbbreviation == playerWeekBest.nflInfo.espn.t[playerWeekBest.year][0]).sleeperID}</Cell>
+                                            <Cell class="center">
+                                                <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{playerWeekBest.team.toLowerCase()}.png" alt="{playerWeekBest.team}">
+                                            </Cell>
                                             {#if masterSelection == 'alltime'}
                                                 <Cell class="center">{playerWeekBest.year}</Cell>
                                             {/if}
                                             <Cell class="center">{playerWeekBest.week}</Cell>
-                                            <Cell class="center">{round(playerWeekBest.playerPoints)}</Cell>
+                                            <Cell class="center">{round(playerWeekBest.fpts)}</Cell>
                                         </Row>
                                     {/each}
                                 </Body>
                             </DataTable>
                         {/if}
                     {:else if displayPlayerRecord == 'season'}
-                        {#if playerPeriodBests && playerPeriodBests.length}
+                        {#if displayRecords.players.periodHighs.stats && displayRecords.players.periodHighs.stats.length}
                             <DataTable class="playerTable">
                                 <Head>
                                     <Row>
-                                        <Cell class="header" colspan=11>
+                                        <Cell class="header" colspan=12>
                                             <p>
-                                                Top 10 Season-Long Scores – Players<br>
-                                                {recordPrefix} 
+                                                Top 10 Season-Long Scores – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
@@ -1670,48 +1792,397 @@
                                             <Cell class="header">Year</Cell>
                                         {/if}
                                         <Cell class="header">
-                                            Led Team
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('playerPeriodBests', playerPeriodBests, 'topStarters')}>filter_list</Icon>
+                                            Led 
+                                            <br>
+                                            Team
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.periodHighs, displayRecords.players.periodHighs.stats, 'topStarters', [])}>filter_list</Icon>
                                         </Cell>
                                         <Cell class="header">
-                                            Avg Rank
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('playerPeriodBests', playerPeriodBests, 'starterRankAVG', true)}>filter_list</Icon>
+                                            Team 
+                                            <br>
+                                            Bust
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.periodHighs, displayRecords.players.periodHighs.stats, 'bottomStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Average 
+                                            <br>
+                                            Team Rank
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.periodHighs, displayRecords.players.periodHighs.stats, 'starterRankAVG', [], true)}>filter_list</Icon>
                                         </Cell>
                                         <Cell class="header">
                                             Starts
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('playerPeriodBests', playerPeriodBests, 'weeksStarted')}>filter_list</Icon>
+                                            <br>
+                                            / Owned
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.periodHighs, displayRecords.players.periodHighs.stats, 'starters', ['weeks'])}>filter_list</Icon>
                                         </Cell>
                                         <Cell class="header">
                                             PF
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('playerPeriodBests', playerPeriodBests, 'playerPoints')}>filter_list</Icon>
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.periodHighs, displayRecords.players.periodHighs.stats, 'real', ['fpts', 'starters'])}>filter_list</Icon>
                                         </Cell>
                                         <Cell class="header">
                                             PPG
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('playerPeriodBests', playerPeriodBests, 'playerPPStart')}>filter_list</Icon>
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.periodHighs, displayRecords.players.periodHighs.stats, 'realPPG', ['fpts', 'starters'])}>filter_list</Icon>
                                         </Cell>
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each playerPeriodBests as playerPeriodBest, ix (rand * (ix + 1))}
+                                    {#each displayRecords.players.periodHighs.stats as playerPeriodBest, ix (rand * (ix + 1))}
                                         {#if rand == 0}
                                             nothing
                                         {:else}
                                             <Row>
                                                 <Cell class="rank">{ix + 1}</Cell>
-                                                <Cell class="playerAvatar playerInfo" style="{playerPeriodBest.avatar}; background-color: var(--gcSelect); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{playerPeriodBest.avatar}'); background-color: var(--gcSelect); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
                                                 <Cell class="left">{playerPeriodBest.playerInfo.fn} {playerPeriodBest.playerInfo.ln}</Cell>
                                                 {#if displayPositionRecord == 'ALL'}
                                                     <Cell class="center">{playerPeriodBest.playerInfo.pos}</Cell>
                                                 {/if}
-                                                <Cell class="center">{playerPeriodBest.playerInfo.pos == 'DEF' ? playerPeriodBest.playerID : playerPeriodBest.nflInfo && playerPeriodBest.nflInfo.espn.t[playerPeriodBest.year].length > 1 ? nflTeams.find(t => t.espnAbbreviation == playerPeriodBest.nflInfo.espn.t[playerPeriodBest.year].find(w => w.lastWeek == 100).team).sleeperID : playerPeriodBest.playerInfo.wi[playerPeriodBest.year][1] && playerPeriodBest.playerInfo.wi[playerPeriodBest.year][1].t ? playerPeriodBest.playerInfo.wi[playerPeriodBest.year][1].t : nflTeams.find(t => t.espnAbbreviation == playerPeriodBest.nflInfo.espn.t[playerPeriodBest.year][0]).sleeperID}</Cell>
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{playerPeriodBest.team.toLowerCase()}.png" alt="{playerPeriodBest.team}">
+                                                </Cell>                                                
                                                 {#if masterSelection == 'alltime'}
                                                     <Cell class="center">{playerPeriodBest.year}</Cell>
                                                 {/if}
                                                 <Cell class="center">{playerPeriodBest.topStarters}</Cell>
+                                                <Cell class="center">{playerPeriodBest.bottomStarters}</Cell>
                                                 <Cell class="center">{round(playerPeriodBest.starterRankAVG)}</Cell>
-                                                <Cell class="center">{playerPeriodBest.weeksStarted} / {playerPeriodBest.weeksOwned}</Cell>
-                                                <Cell class="center">{round(playerPeriodBest.playerPoints)}</Cell>
-                                                <Cell class="center">{round(playerPeriodBest.playerPPStart)}</Cell>
+                                                <Cell class="center">{playerPeriodBest.weeks.starters} / {playerPeriodBest.weeks.total}</Cell>
+                                                <Cell class="center">{round(playerPeriodBest.fpts.starters.real)}</Cell>
+                                                <Cell class="center">{round(playerPeriodBest.fpts.starters.realPPG)}</Cell>
+                                            </Row>
+                                        {/if}
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                    {:else if displayPlayerRecord == 'breakouts'}
+                        {#if displayRecords.players.seasonOvers.stats && displayRecords.players.seasonOvers.stats.length}
+                            <DataTable class="playerTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=13>
+                                            <p>
+                                                Biggest Season-Long Breakouts – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" />
+                                        <Cell class="header">Player</Cell>
+                                        <Cell class="header">POS</Cell>
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Year</Cell>
+                                        {/if}
+                                        <Cell class="header">
+                                            Led 
+                                            <br>
+                                            Team
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'topStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Team 
+                                            <br>
+                                            Bust
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'bottomStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Average
+                                            <br>
+                                            Team Rank
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'starterRankAVG', [], true)}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Starts
+                                            <br>
+                                            / Owned
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'starters', ['weeks'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'real', ['fpts', 'starters'])}>filter_list</Icon>
+                                            <br>
+                                            (PPG)
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'realPPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Proj PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'proj', ['fpts', 'starters'])}>filter_list</Icon>
+                                            <br>
+                                            (PPG)
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'projPPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Diff
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'diff', ['fpts', 'starters'])}>filter_list</Icon>
+                                            <br>
+                                            Diff PG
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonOvers, displayRecords.players.seasonOvers.stats, 'diffPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.seasonOvers.stats as seasonBestOver, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{seasonBestOver.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{seasonBestOver.playerInfo.fn} {seasonBestOver.playerInfo.ln}</Cell>
+                                                <Cell class="center">
+                                                    <div class="pos {seasonBestOver.playerInfo.pos}">
+                                                        {seasonBestOver.playerInfo.pos}
+                                                    </div>
+                                                </Cell>
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{seasonBestOver.team.toLowerCase()}.png" alt="{seasonBestOver.team}">
+                                                </Cell>
+                                                {#if masterSelection == 'alltime'}
+                                                    <Cell class="center">{seasonBestOver.year}</Cell>
+                                                {/if}
+                                                <Cell class="center">{seasonBestOver.topStarters}</Cell>
+                                                <Cell class="center">{seasonBestOver.bottomStarters}</Cell>
+                                                <Cell class="center">{round(seasonBestOver.starterRankAVG)}</Cell>
+                                                <Cell class="center">{seasonBestOver.weeks.starters} / {seasonBestOver.weeks.total}</Cell>
+                                                <Cell class="center">{round(seasonBestOver.fpts.starters.real)} <div style="font-size: 0.9em">{round(seasonBestOver.fpts.starters.realPPG)}</Cell>
+                                                <Cell class="center">{round(seasonBestOver.fpts.starters.proj)} <div style="font-size: 0.9em">{round(seasonBestOver.fpts.starters.projPPG)}</Cell>
+                                                <Cell class="center">{round(seasonBestOver.fpts.starters.diff)} <div style="font-size: 0.9em">{round(seasonBestOver.fpts.starters.diffPG)}</div></Cell>
+                                            </Row>
+                                        {/if}
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                
+                        {#if displayRecords.players.weekOvers.stats && displayRecords.players.weekOvers.stats.length}
+                            <DataTable class="playerTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=10>
+                                            <p>
+                                                Biggest Single-Week Breakouts – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" />
+                                        <Cell class="header">Player</Cell>
+                                        <Cell class="header">POS</Cell>
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Year</Cell>
+                                        {/if}
+                                        <Cell class="header">Week</Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.weekOvers, displayRecords.players.weekOvers.stats, 'fpts')}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Proj PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.weekOvers, displayRecords.players.weekOvers.stats, 'projFpts')}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Diff
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.weekOvers, displayRecords.players.weekOvers.stats, 'projDiff')}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.weekOvers.stats as weekBestOver, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{weekBestOver.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{weekBestOver.playerInfo.fn} {weekBestOver.playerInfo.ln}</Cell>
+                                                <Cell class="center">
+                                                    <div class="pos {weekBestOver.playerInfo.pos}">
+                                                        {weekBestOver.playerInfo.pos}
+                                                    </div>
+                                                </Cell>
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{weekBestOver.team.toLowerCase()}.png" alt="{weekBestOver.team}">
+                                                </Cell>
+                                                {#if masterSelection == 'alltime'}
+                                                    <Cell class="center">{weekBestOver.year}</Cell>
+                                                {/if}
+                                                <Cell class="center">{weekBestOver.week}</Cell>
+                                                <Cell class="center">{round(weekBestOver.fpts)}</Cell>
+                                                <Cell class="center">{round(weekBestOver.projFpts)}</Cell>
+                                                <Cell class="center">{round(weekBestOver.projDiff)}</Cell>
+                                            </Row>
+                                        {/if}
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                    {:else if displayPlayerRecord == 'busts'}
+                        {#if displayRecords.players.seasonUnders.stats && displayRecords.players.seasonUnders.stats.length}
+                            <DataTable class="playerTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=13>
+                                            <p>
+                                                Biggest Season-Long Busts – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" />
+                                        <Cell class="header">Player</Cell>
+                                        <Cell class="header">POS</Cell>
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Year</Cell>
+                                        {/if}
+                                        <Cell class="header">
+                                            Led 
+                                            <br>
+                                            Team
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'topStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Team 
+                                            <br>
+                                            Bust
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'bottomStarters', [])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Average 
+                                            <br>
+                                            Team Rank
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'starterRankAVG', [], true)}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Starts
+                                            <br>
+                                            / Owned
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'starters', ['weeks'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'real', ['fpts', 'starters'])}>filter_list</Icon>
+                                            <br>
+                                            (PPG)
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'realPPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Proj PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'proj', ['fpts', 'starters'])}>filter_list</Icon>
+                                            <br>
+                                            (PPG)
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'projPPG', ['fpts', 'starters'])}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Diff
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'diff', ['fpts', 'starters'], true)}>filter_list</Icon>
+                                            <br>
+                                            (Diff PG)
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.seasonUnders, displayRecords.players.seasonUnders.stats, 'diffPG', ['fpts', 'starters'], true)}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.seasonUnders.stats as seasonBestUnder, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{seasonBestUnder.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{seasonBestUnder.playerInfo.fn} {seasonBestUnder.playerInfo.ln}</Cell>
+                                                <Cell class="center">
+                                                    <div class="pos {seasonBestUnder.playerInfo.pos}">
+                                                        {seasonBestUnder.playerInfo.pos}
+                                                    </div>
+                                                </Cell>
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{seasonBestUnder.team.toLowerCase()}.png" alt="{seasonBestUnder.team}">
+                                                </Cell>
+                                                {#if masterPrefix == 'alltime'}
+                                                    <Cell class="center">{seasonBestUnder.year}</Cell>
+                                                {/if}
+                                                <Cell class="center">{seasonBestUnder.topStarters}</Cell>
+                                                <Cell class="center">{seasonBestUnder.bottomStarters}</Cell>
+                                                <Cell class="center">{round(seasonBestUnder.starterRankAVG)}</Cell>
+                                                <Cell class="center">{seasonBestUnder.weeks.starters} / {seasonBestUnder.weeks.total}</Cell>
+                                                <Cell class="center">{round(seasonBestUnder.fpts.starters.real)} <div style="font-size: 0.9em">{round(seasonBestUnder.fpts.starters.realPPG)}</div></Cell>
+                                                <Cell class="center">{round(seasonBestUnder.fpts.starters.proj)} <div style="font-size: 0.9em">{round(seasonBestUnder.fpts.starters.projPPG)}</div></Cell>
+                                                <Cell class="center">{round(seasonBestUnder.fpts.starters.diff)} <div style="font-size: 0.9em">{round(seasonBestUnder.fpts.starters.diffPG)}</div></Cell>
+                                            </Row>
+                                        {/if}
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                
+                        {#if displayRecords.players.weekUnders.stats && displayRecords.players.weekUnders.stats.length}
+                            <DataTable class="playerTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=10>
+                                            <p>
+                                                Biggest Single-Week Busts – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" />
+                                        <Cell class="header">Player</Cell>
+                                        <Cell class="header">POS</Cell>
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Year</Cell>
+                                        {/if}
+                                        <Cell class="header">Week</Cell>
+                                        <Cell class="header">
+                                            PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.weekUnders, displayRecords.players.weekUnders.stats, 'fpts')}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Proj PF
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.weekUnders, displayRecords.players.weekUnders.stats, 'projFpts')}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            Diff
+                                            <Icon class="material-icons changeSort"on:click={() => changeSort(displayRecords.players.weekUnders, displayRecords.players.weekUnders.stats, 'projDiff', true)}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.weekUnders.stats as weekBestUnder, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{weekBestUnder.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{weekBestUnder.playerInfo.fn} {weekBestUnder.playerInfo.ln}</Cell>
+                                                <Cell class="center">
+                                                    <div class="pos {weekBestUnder.playerInfo.pos}">
+                                                        {weekBestUnder.playerInfo.pos}
+                                                    </div>
+                                                </Cell>
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{weekBestUnder.team.toLowerCase()}.png" alt="{weekBestUnder.team}">
+                                                </Cell>
+                                                {#if masterSelection == 'alltime'}
+                                                    <Cell class="center">{weekBestUnder.year}</Cell>
+                                                {/if}
+                                                <Cell class="center">{weekBestUnder.week}</Cell>
+                                                <Cell class="center">{round(weekBestUnder.fpts)}</Cell>
+                                                <Cell class="center">{round(weekBestUnder.projFpts)}</Cell>
+                                                <Cell class="center">{round(weekBestUnder.projDiff)}</Cell>
                                             </Row>
                                         {/if}
                                     {/each}
@@ -1719,14 +2190,14 @@
                             </DataTable>
                         {/if}
                     {:else if displayPlayerRecord == 'bench'}
-                        {#if playerWeekMissedBests && playerWeekMissedBests.length}
+                        {#if displayRecords.players.weekMissedHighs.stats && displayRecords.players.weekMissedHighs.stats.length}
                             <DataTable class="playerTable">
                                 <Head>
                                     <Row>
                                         <Cell class="header" colspan=8>
                                             <p>
-                                                Top 10 Benchwarmers – Players<br>
-                                                {recordPrefix} 
+                                                Top 10 Benchwarmers – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} - {recordPrefix} 
                                             </p>
                                         </Cell>                  
                                     </Row>
@@ -1746,21 +2217,96 @@
                                     </Row>
                                 </Head>
                                 <Body>
-                                    {#each playerWeekMissedBests as playerWeekMissedBest, ix}
+                                    {#each displayRecords.players.weekMissedHighs.stats as playerWeekMissedBest, ix}
                                         <Row>
                                             <Cell class="rank">{ix + 1}</Cell>
-                                            <Cell class="playerAvatar playerInfo" style="{playerWeekMissedBest.avatar}; background-color: var(--gcSelect); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                            <Cell class="playerAvatar playerInfo" style="background-image: url('{playerWeekMissedBest.avatar}'); background-color: var(--gcSelect); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
                                             <Cell class="left">{playerWeekMissedBest.playerInfo.fn} {playerWeekMissedBest.playerInfo.ln}</Cell>
                                             {#if displayPositionRecord == 'ALL'}
-                                                <Cell class="center">{playerWeekMissedBest.playerInfo.pos}</Cell>
+                                                <Cell class="center">
+                                                    <div class="pos {playerWeekMissedBest.playerInfo.pos}">
+                                                        {playerWeekMissedBest.playerInfo.pos}
+                                                    </div>
+                                                </Cell>
                                             {/if}
-                                            <Cell class="center">{playerWeekMissedBest.playerInfo.pos == 'DEF' ? playerWeekMissedBest.playerID : playerWeekMissedBest.nflInfo && playerWeekMissedBest.nflInfo.espn.t[playerWeekMissedBest.year].length > 1 ? nflTeams.find(t => t.espnAbbreviation == playerWeekMissedBest.nflInfo.espn.t[playerWeekMissedBest.year].find(w => w.firstWeek <= playerWeekMissedBest.week && w.lastWeek >= playerWeekMissedBest.week).team).sleeperID : playerWeekMissedBest.playerInfo.wi[playerWeekMissedBest.year][playerWeekMissedBest.week] && playerWeekMissedBest.playerInfo.wi[playerWeekMissedBest.year][playerWeekMissedBest.week].t ? playerWeekMissedBest.playerInfo.wi[playerWeekMissedBest.year][playerWeekMissedBest.week].t : nflTeams.find(t => t.espnAbbreviation == playerWeekMissedBest.nflInfo.espn.t[playerWeekMissedBest.year][0]).sleeperID}</Cell>
+                                            <Cell class="center">
+                                                <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{playerWeekMissedBest.team.toLowerCase()}.png" alt="{playerWeekMissedBest.team}">
+                                            </Cell>                                            
                                             {#if masterSelection == 'alltime'}
                                                 <Cell class="center">{playerWeekMissedBest.year}</Cell>
                                             {/if}
                                             <Cell class="center">{playerWeekMissedBest.week}</Cell>
-                                            <Cell class="center">{round(playerWeekMissedBest.benchPoints)}</Cell>
+                                            <Cell class="center">{round(playerWeekMissedBest.fpts)}</Cell>
                                         </Row>
+                                    {/each}
+                                </Body>
+                            </DataTable>
+                        {/if}
+                        {#if displayRecords.players.overallMissedHighs.stats && displayRecords.players.overallMissedHighs.stats.length}
+                            <DataTable class="recordTable">
+                                <Head>
+                                    <Row>
+                                        <Cell class="header" colspan=9>
+                                            <p>
+                                                All-Around Bench Scoring Leaders – {displayPositionRecord == 'ALL' ? 'Players' : displayPositionRecord}<br>
+                                                {masterPrefix} – {recordPrefix} 
+                                            </p>
+                                        </Cell>                  
+                                    </Row>
+                                    <Row>
+                                        <Cell class="header rank"></Cell>
+                                        <Cell class="header rank" /> 
+                                        <Cell class="header">Player</Cell>
+                                        {#if displayPositionRecord == 'ALL'}
+                                            <Cell class="header">POS</Cell>
+                                        {/if}
+                                        <Cell class="header">NFL Team</Cell>
+                                        {#if masterSelection == 'alltime'}
+                                            <Cell class="header">Seasons</Cell>
+                                        {/if}
+                                        <Cell class="header">
+                                            Benched
+                                            <br>
+                                            / Owned
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallMissedHighs, displayRecords.players.overallMissedHighs.stats, 'bench')}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            BP
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallMissedHighs, displayRecords.players.overallMissedHighs.stats, 'real')}>filter_list</Icon>
+                                        </Cell>
+                                        <Cell class="header">
+                                            BPPG
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.players.overallMissedHighs, displayRecords.players.overallMissedHighs.stats, 'realPPG')}>filter_list</Icon>
+                                        </Cell>
+                                    </Row>
+                                </Head>
+                                <Body>
+                                    {#each displayRecords.players.overallMissedHighs.stats as player, ix (rand * (ix + 1))}
+                                        {#if rand == 0}
+                                            nothing
+                                        {:else}
+                                            <Row>
+                                                <Cell class="rank">{ix + 1}</Cell>
+                                                <Cell class="playerAvatar playerInfo" style="background-image: url('{player.avatar}'); vertical-align: middle; height: 45px; width: 45px; background-position: center; background-repeat: no-repeat; background-size: auto 45px;" />
+                                                <Cell class="left">{player.playerInfo.fn} {player.playerInfo.ln}</Cell>
+                                                {#if displayPositionRecord == 'ALL'}
+                                                    <Cell class="center">
+                                                        <div class="pos {player.playerInfo.pos}">
+                                                            {player.playerInfo.pos}
+                                                        </div>
+                                                    </Cell>
+                                                {/if}
+                                                <Cell class="center">
+                                                    <img class="teamAvatar" src="https://sleepercdn.com/images/team_logos/nfl/{player.team.toLowerCase()}.png" alt="{player.team}">
+                                                </Cell>
+                                                {#if masterSelection == 'alltime'}
+                                                    <Cell class="center">{player.years.total}</Cell>
+                                                {/if}
+                                                <Cell class="center">{player.weeks.bench} / {player.weeks.total}</Cell>
+                                                <Cell class="center">{round(player.fpts.bench.real)}</Cell>
+                                                <Cell class="center">{round(player.fpts.bench.realPPG)}</Cell>
+                                            </Row>
+                                        {/if}
                                     {/each}
                                 </Body>
                             </DataTable>
@@ -1777,11 +2323,11 @@
         <div class="recordsWrap">
             <div class="columnWrap" style="width: 98%;">
                 {#if showEmpty == false}
-                    {#if headToHeads && headToHeads.length}
+                    {#if displayRecords.headToHeads.stats && displayRecords.headToHeads.stats.length}
                         <DataTable class="playerTable">
                             <Head>
                                 <Row>
-                                    <Cell class="header" colspan=13>
+                                    <Cell class="header" colspan=17>
                                         <p>
                                             Records Against Other Managers<br>
                                             {recordPrefix} 
@@ -1790,90 +2336,159 @@
                                 </Row>
                                 <Row>
                                     <Cell class="header"></Cell>
-                                    <Cell class="header">Manager</Cell>
+                                    <Cell class="header">
+                                        VS.
+                                        <br> 
+                                        Manager
+                                    </Cell>
                                     <Cell class="header">
                                         Win %
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'winPerc')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'perc', ['outcomes', 'match'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE %)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'perc', ['outcomes', 'EPE'])}>filter_list</Icon>
                                     </Cell>
                                     <Cell class="header">
                                         W
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'wins')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'W', ['outcomes', 'match'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE W)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'W', ['outcomes', 'EPE'])}>filter_list</Icon>
                                     </Cell>
-                                    {#if headShowTies == true}
+                                    {#if showTies.headTable.match || showTies.headTable.EPE}
                                         <Cell class="header">
                                             T
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'ties')}>filter_list</Icon>
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'T', ['outcomes', 'match'])}>filter_list</Icon>
+                                            <br>
+                                            (EPE T)
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'T', ['outcomes', 'EPE'])}>filter_list</Icon>
                                         </Cell>
                                     {/if}
                                     <Cell class="header">
                                         L
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'losses')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'L', ['outcomes', 'match'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE L)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'L', ['outcomes', 'EPE'])}>filter_list</Icon>
                                     </Cell>
                                     <Cell class="header">
-                                        EPE Win %
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'epePerc')}>filter_list</Icon>
+                                        IQ Win %
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'perc', ['outcomes', 'iq'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE %)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'perc', ['outcomes', 'iqEPE'])}>filter_list</Icon>
                                     </Cell>
                                     <Cell class="header">
-                                        EPE W
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'epeWins')}>filter_list</Icon>
+                                        IQ W
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'W', ['outcomes', 'iq'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE W)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'W', ['outcomes', 'iqEPE'])}>filter_list</Icon>
                                     </Cell>
-                                    {#if headShowTiesEPE == true}
+                                    {#if showTies.headTable.iq || showTies.headTable.iqEPE}
                                         <Cell class="header">
-                                            EPE T
-                                            <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'epeTies')}>filter_list</Icon>
+                                            IQ T
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'T', ['outcomes', 'iq'])}>filter_list</Icon>
+                                            <br>
+                                            (EPE T)
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'T', ['outcomes', 'iqEPE'])}>filter_list</Icon>
                                         </Cell>
                                     {/if}
                                     <Cell class="header">
-                                        EPE L
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'epeLosses')}>filter_list</Icon>
+                                        IQ L 
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'L', ['outcomes', 'iq'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE L)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'L', ['outcomes', 'iqEPE'])}>filter_list</Icon>
+                                    </Cell>
+                                    <Cell class="header">
+                                        BestBall
+                                        <br>
+                                        Win %
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'perc', ['outcomes', 'bball'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE %)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'perc', ['outcomes', 'bballEPE'])}>filter_list</Icon>
+                                    </Cell>
+                                    <Cell class="header">
+                                        BestBall W
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'W', ['outcomes', 'bball'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE W)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'W', ['outcomes', 'bballEPE'])}>filter_list</Icon>
+                                    </Cell>
+                                    {#if showTies.headTable.bball || showTies.headTable.bballEPE}
+                                        <Cell class="header">
+                                            BestBall T
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'T', ['outcomes', 'bball'])}>filter_list</Icon>
+                                            <br>
+                                            (EPE T)
+                                            <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'T', ['outcomes', 'bballEPE'])}>filter_list</Icon>
+                                        </Cell>
+                                    {/if}
+                                    <Cell class="header">
+                                        BestBall L 
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'L', ['outcomes', 'bball'])}>filter_list</Icon>
+                                        <br>
+                                        (EPE L)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'L', ['outcomes', 'bballEPE'])}>filter_list</Icon>
                                     </Cell>
                                     <Cell class="header">
                                         PF 
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'fpts')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'real', ['fpts', 'starters'])}>filter_list</Icon>
                                         <br>
                                         (PPG)
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'fptspg')}>filter_list</Icon></Cell>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'realPPG', ['fpts', 'starters'])}>filter_list</Icon></Cell>
                                     <Cell class="header">
                                         PA 
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'fptsAgainst')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'real', ['fpts', 'opp'])}>filter_list</Icon>
                                         <br>
                                         (PPG)
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'fptsAgainstPg')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'realPPG', ['fpts', 'opp'])}>filter_list</Icon>
                                     </Cell>
                                     <Cell class="header">
                                         Diff
-                                        <Icon class="material-icons changeSort" on:click={() => changeSort('headToHeads', headToHeads, 'differential')}>filter_list</Icon>
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'marg', ['margins', 'match'])}>filter_list</Icon>
+                                        <br>
+                                        (Diff PG)
+                                        <Icon class="material-icons changeSort" on:click={() => changeSort(displayRecords.headToHeads, displayRecords.headToHeads.stats, 'mpg', ['margins', 'match'])}>filter_list</Icon>
                                     </Cell>
                                 </Row>
                             </Head>
                             <Body>
-                                {#each headToHeads as opponent, ix (rand * (ix + 1))}
+                                {#each displayRecords.headToHeads.stats as opponent, ix (rand * (ix + 1))}
                                     {#if rand == 0}
                                         nothing
                                     {:else}
                                         <Row>
                                             <Cell>{ix + 1}</Cell>
-                                            <Cell class="cellName" on:click={() => gotoManager(opponent.againstRecordManID)}>
-                                                {opponent.againstManager.realname}
+                                            <Cell class="cellName" on:click={() => gotoManager(opponent.oppRecordManID)}>
+                                                {opponent.oppManager.realname}
                                                 {#if masterSelection == 'yearly'}
-                                                    <div class="fantasyTeamName">({opponent.againstManager.name})</div>
+                                                    <div class="fantasyTeamName">({opponent.oppManager.name})</div>
                                                 {/if}
                                             </Cell>
-                                            <Cell class="center">{round(opponent.winPerc)}</Cell>
-                                            <Cell class="center">{opponent.wins}</Cell>
-                                            {#if headShowTies == true}
-                                                <Cell class="center">{opponent.ties}</Cell>
+                                            <Cell class="center">{round(opponent.outcomes.match.perc)} <div style="font-size: 0.9em">({round(opponent.outcomes.EPE.perc)})</div></Cell>
+                                            <Cell class="center">{opponent.outcomes.match.W}  <div style="font-size: 0.9em">({opponent.outcomes.EPE.W})</div></Cell>
+                                            {#if showTies.headTable.match || showTies.headTable.EPE}
+                                                <Cell class="center">{opponent.outcomes.match.T}  <div style="font-size: 0.9em">({opponent.outcomes.EPE.T})</div></Cell>
                                             {/if}
-                                            <Cell class="center">{opponent.losses}</Cell>
-                                            <Cell class="center">{round(opponent.epePerc)}</Cell>
-                                            <Cell class="center">{opponent.epeWins}</Cell>
-                                            {#if headShowTiesEPE == true}
-                                                <Cell class="center">{opponent.epeTies}</Cell>
+                                            <Cell class="center">{opponent.outcomes.match.L}  <div style="font-size: 0.9em">({opponent.outcomes.EPE.L})</div></Cell>
+                                            <Cell class="center">{round(opponent.outcomes.iq.perc)}  <div style="font-size: 0.9em">({round(opponent.outcomes.iqEPE.perc)})</div></Cell>
+                                            <Cell class="center">{opponent.outcomes.iq.W}  <div style="font-size: 0.9em">({opponent.outcomes.iqEPE.W})</div></Cell>
+                                            {#if showTies.headTable.iq || showTies.headTable.iqEPE}
+                                                <Cell class="center">{opponent.outcomes.iq.T}  <div style="font-size: 0.9em">({opponent.outcomes.iqEPE.T})</div></Cell>
                                             {/if}
-                                            <Cell class="center">{opponent.epeLosses}</Cell>
-                                            <Cell class="center">{round(opponent.fpts)}  <div style="font-size: 0.9em">({round(opponent.fptspg)})</div></Cell>
-                                            <Cell class="center">{round(opponent.fptsAgainst)}  <div style="font-size: 0.9em">({round(opponent.fptsAgainstPg)})</div></Cell>
-                                            <Cell class="center">{round(opponent.differential)}</Cell>
+                                            <Cell class="center">{opponent.outcomes.iq.L}  <div style="font-size: 0.9em">({opponent.outcomes.iqEPE.L})</div></Cell>
+                                            <Cell class="center">{round(opponent.outcomes.bball.perc)}  <div style="font-size: 0.9em">({round(opponent.outcomes.bballEPE.perc)})</div></Cell>
+                                            <Cell class="center">{opponent.outcomes.bball.W}  <div style="font-size: 0.9em">({opponent.outcomes.bballEPE.W})</div></Cell>
+                                            {#if showTies.headTable.bball || showTies.headTable.bballEPE}
+                                                <Cell class="center">{opponent.outcomes.bball.T}  <div style="font-size: 0.9em">({opponent.outcomes.bballEPE.T})</div></Cell>
+                                            {/if}
+                                            <Cell class="center">{opponent.outcomes.iq.L}  <div style="font-size: 0.9em">({opponent.outcomes.iqEPE.L})</div></Cell>
+                                            <Cell class="center">{round(opponent.fpts.starters.real)}  <div style="font-size: 0.9em">({round(opponent.fpts.starters.realPPG)})</div></Cell>
+                                            <Cell class="center">{round(opponent.fpts.opp.real)}  <div style="font-size: 0.9em">({round(opponent.fpts.opp.realPPG)})</div></Cell>
+                                            <Cell class="center">{round(opponent.margins.match.marg)}  <div style="font-size: 0.9em">({round(opponent.margins.match.mpg)})</div></Cell>
                                         </Row>
                                     {/if}
                                 {/each}
@@ -1884,10 +2499,13 @@
                         <div class="headToHeadChoices">
                             {#each managerChoicesLeft as manager}
                                 <div class="columnWrap" style="width: 98%; align-items: flex-start;">
-                                    <div class="headToHeadRow">{manager.info.realname}</div>
-                                    {#if masterSelection == 'yearly'}
-                                        <div class="fantasyTeamName" style="padding: 0 4%;">({manager.info.name})</div>
-                                    {/if}
+                                    <div class="headToHeadRow">
+                                        {manager.info.realname}
+                                        <br>
+                                        {#if masterSelection == 'yearly'}
+                                            <div class="fantasyTeamName" style="padding: 0 4%;">({manager.info.name})</div>
+                                        {/if}
+                                    </div>
                                 </div>
                             {/each}
                         </div>
@@ -1906,26 +2524,50 @@
                                         </div>
                                         <div class="headToHeadSummaryWrap">
                                             <div class="columnWrap">
-                                                <div class="headToHeadSummaryText">Wins:</div>
-                                                {#if headToHeadShowTies.regular == true}
-                                                    <div class="headToHeadSummaryText">Ties:</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">EPE Wins:</div>
-                                                {#if headToHeadShowTies.epe == true}
-                                                    <div class="headToHeadSummaryText">EPE Ties:</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">Points:</div>
+                                                <div class="headToHeadSummaryHeader">
+                                                    WINS
+                                                </div>
+                                                <div class="recordsWrap">
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText">Match</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">EPE</div>
+                                                        <div class="headToHeadSummaryText">IQ</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">EPE</div>
+                                                        <div class="headToHeadSummaryText">BestBall</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">EPE</div>
+                                                    </div>
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{displayManagerLeft.outcomes.match.W}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{displayManagerLeft.outcomes.EPE.W}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{displayManagerLeft.outcomes.iq.W}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{displayManagerLeft.outcomes.iqEPE.W}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{displayManagerLeft.outcomes.bball.W}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{displayManagerLeft.outcomes.bballEPE.W}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="columnWrap">
-                                                <div class="headToHeadSummaryText">{displayManagerLeft.wins}</div>
-                                                {#if headToHeadShowTies.regular == true}
-                                                    <div class="headToHeadSummaryText">{displayManagerLeft.ties}</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">{displayManagerLeft.epeWins}</div>
-                                                {#if headToHeadShowTies.epe == true}
-                                                    <div class="headToHeadSummaryText">{displayManagerLeft.epeTies}</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">{round(displayManagerLeft.fpts)} ({round(displayManagerLeft.fptspg)})</div>
+                                                <div class="headToHeadSummaryHeader">
+                                                    POINTS
+                                                </div>
+                                                <div class="recordsWrap">
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText">Match</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">PPG</div>
+                                                        <div class="headToHeadSummaryText">Proj</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">PPG</div>
+                                                        <div class="headToHeadSummaryText">Poss</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">PPG</div>
+                                                    </div>
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{round(displayManagerLeft.fpts.starters.real)}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{round(displayManagerLeft.fpts.starters.realPPG)}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{round(displayManagerLeft.fpts.starters.proj)}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{round(displayManagerLeft.fpts.starters.projPPG)}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{round(displayManagerLeft.fpts.starters.poss)}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{round(displayManagerLeft.fpts.starters.possPPG)}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     {/if}
@@ -1943,26 +2585,50 @@
                                         </div>
                                         <div class="headToHeadSummaryWrap">
                                             <div class="columnWrap">
-                                                <div class="headToHeadSummaryText">Wins:</div>
-                                                {#if headToHeadShowTies.regular == true}
-                                                    <div class="headToHeadSummaryText">Ties:</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">EPE Wins:</div>
-                                                {#if headToHeadShowTies.epe == true}
-                                                    <div class="headToHeadSummaryText">EPE Ties:</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">Points:</div>
+                                                <div class="headToHeadSummaryHeader">
+                                                    WINS
+                                                </div>
+                                                <div class="recordsWrap">
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText">Match</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">EPE</div>
+                                                        <div class="headToHeadSummaryText">IQ</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">EPE</div>
+                                                        <div class="headToHeadSummaryText">BestBall</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">EPE</div>
+                                                    </div>
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{displayManagerRight.outcomes.match.W}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{displayManagerRight.outcomes.EPE.W}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{displayManagerRight.outcomes.iq.W}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{displayManagerRight.outcomes.iqEPE.W}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{displayManagerRight.outcomes.bball.W}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{displayManagerRight.outcomes.bballEPE.W}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="columnWrap">
-                                                <div class="headToHeadSummaryText">{displayManagerRight.wins}</div>
-                                                {#if headToHeadShowTies.regular == true}
-                                                    <div class="headToHeadSummaryText">{displayManagerRight.ties}</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">{displayManagerRight.epeWins}</div>
-                                                {#if headToHeadShowTies.epe == true}
-                                                    <div class="headToHeadSummaryText">{displayManagerRight.epeTies}</div>
-                                                {/if}
-                                                <div class="headToHeadSummaryText">{round(displayManagerRight.fpts)} ({round(displayManagerRight.fptspg)})</div>
+                                                <div class="headToHeadSummaryHeader">
+                                                    POINTS
+                                                </div>
+                                                <div class="recordsWrap">
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText">Match</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">PPG</div>
+                                                        <div class="headToHeadSummaryText">Proj</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">PPG</div>
+                                                        <div class="headToHeadSummaryText">Poss</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33;">PPG</div>
+                                                    </div>
+                                                    <div class="columnWrap">
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{round(displayManagerRight.fpts.starters.real)}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{round(displayManagerRight.fpts.starters.realPPG)}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{round(displayManagerRight.fpts.starters.proj)}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{round(displayManagerRight.fpts.starters.projPPG)}</div>
+                                                        <div class="headToHeadSummaryText" style="justify-content: flex-end;">{round(displayManagerRight.fpts.starters.poss)}</div>
+                                                        <div class="headToHeadSummaryText" style="background-color: #7a7a7a33; justify-content: flex-end;">{round(displayManagerRight.fpts.starters.possPPG)}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     {/if}
@@ -1971,13 +2637,13 @@
                             <div class="matchupSwitcher">
                                 {#if displayManagerLeft && displayManagerRight && allMatchups.length > 0}
                                     {#if selectedMatchup > 0}
-                                        <Icon class="material-icons changeMatchup" on:click={() => changeMatchup(selectedMatchup - 1)}>chevron_left</Icon>
+                                        <Icon class="material-icons changeMatchup" on:click={() => selectedMatchup = selectedMatchup - 1}>chevron_left</Icon>
                                     {:else}
                                         <span class="headToHeadSpacer" />
                                     {/if}  
                                     <div class="headToHeadHeadingText">{displayMatchup.home.year} - Week {displayMatchup.home.week}</div>
                                     {#if selectedMatchup < allMatchups.length - 1}
-                                        <Icon class="material-icons changeMatchup" on:click={() => changeMatchup(selectedMatchup + 1)}>chevron_right</Icon>
+                                        <Icon class="material-icons changeMatchup" on:click={() => selectedMatchup = selectedMatchup + 1}>chevron_right</Icon>
                                     {:else}
                                         <span class="headToHeadSpacer" />
                                     {/if}  
@@ -1998,10 +2664,13 @@
                         <div class="headToHeadChoices">
                             {#each managerChoicesRight as manager}
                                 <div class="columnWrap" style="width: 98%; align-items: flex-end;">
-                                    <div class="headToHeadRow" on:click={() => changeManager(manager.recordManID, headToHeadRecords)} style="justify-content: flex-end; {displayManagerRight && displayManagerRight.info.realname == manager.info.realname ? "background-color: var(--gcSelect); border: 0.1em solid var(--g111);" : null}">{manager.info.realname}</div>
-                                    {#if masterSelection == 'yearly'}
-                                        <div class="fantasyTeamName" style="display: inline-flex; position: relative; justify-content: flex-end; padding: 0 4%;" >({manager.info.name})</div>
-                                    {/if}
+                                    <div class="headToHeadRow" on:click={() => changeManager(manager.recordManID, headToHeadRecords)} style="align-items: flex-end; {displayManagerRight && displayManagerRight.info.realname == manager.info.realname ? "background-color: var(--gcSelect); border: 0.1em solid var(--g111);" : null}">
+                                        {manager.info.realname}
+                                        <br>
+                                        {#if masterSelection == 'yearly'}
+                                            <div class="fantasyTeamName" style="display: inline-flex; flex-direction: column; position: relative; align-items: flex-end; padding: 0 4%;" >({manager.info.name})</div>
+                                        {/if}
+                                    </div>
                                 </div>
                             {/each}
                         </div>

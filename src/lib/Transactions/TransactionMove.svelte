@@ -4,16 +4,10 @@
 
 	export let move, number, type, masterOffset, prevManagers, players, allMoves, index, traders;
 	
-	let trade = false;
-	
-	if(type == "trade") {
-		trade = true;
-	}
+	let trade = type == 'trade' ? true : false;
 
 	const getAvatar = (pos, player) => {
-		if(pos == 'DEF') {
-			return `background-image: url(https://sleepercdn.com/images/team_logos/nfl/${player.toLowerCase()}.png)`;
-		}
+		if(pos == 'DEF') return `background-image: url(https://sleepercdn.com/images/team_logos/nfl/${player.toLowerCase()}.png)`;
 		return `background-image: url(https://sleepercdn.com/content/nfl/players/thumb/${player}.jpg), url(https://sleepercdn.com/images/v2/icons/player_default.webp)`;
 	}
 
@@ -21,8 +15,6 @@
 
 	const offset = 18;
 	const originOffset = 10;
-
-
 
 	let x1, x2;
     let innerWidth;

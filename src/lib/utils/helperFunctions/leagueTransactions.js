@@ -44,12 +44,9 @@ export const getLeagueTransactions = async (preview, refresh = false) => {
 
 	const numberManagers = managers.length;
 	const leagueManagers = {};
-	for(const managerID in managers) {
-		const manager = managers[managerID];
+	for(const manager of managers) {
 
-		if(!leagueManagers[manager.roster]) {
-			leagueManagers[manager.roster] = [];
-		}
+		if(!leagueManagers[manager.roster]) leagueManagers[manager.roster] = [];
 		leagueManagers[manager.roster].push({
 			managerID: manager.managerID,
 			rosterID: manager.roster,
@@ -157,13 +154,8 @@ const combThroughTransactions = async (week, currentLeagueID, leagueManagers) =>
 			}
 		}
 
-		if(!currentManagers) {
-			currentManagers = managers;
-		}
-
-		if(!currentSeason) {
-			currentSeason = leagueData.season;
-		}
+		if(!currentManagers) currentManagers = managers;
+		if(!currentSeason) currentSeason = leagueData.season;
 
 		prevManagers[leagueData.season] = managers;
 
@@ -180,7 +172,6 @@ const combThroughTransactions = async (week, currentLeagueID, leagueManagers) =>
 			}
 		}
 		
-
 		currentLeagueID = leagueData.previous_league_id;
 	}
 
@@ -236,26 +227,17 @@ const digestTransactions = (transactionsData, prevManagers, currentSeason, numbe
 			if(transactions.find(t => t.moves[0][0].player == digestedTransaction.player && t.date == digestedTransaction.date)) {
 
 				const transactionMatch = transactions.find(t => t.moves[0][0].player == digestedTransaction.player && t.date == digestedTransaction.date);
-				if(!transactionMatch.failedAdds) {
-					transactionMatch.failedAdds = [];
-				}
-				const recordManID = leagueManagers[digestedTransaction.adds[digestedTransaction.player]].find(m => m.yearsactive.includes(season)).managerID;
+				if(!transactionMatch.failedAdds) transactionMatch.failedAdds = [];
 				transactionMatch.failedAdds.push({
-					recordManID,
+					recordManID: leagueManagers[digestedTransaction.adds[digestedTransaction.player]].find(m => m.yearsactive.includes(season)).managerID,
 					bid: digestedTransaction.bid,
 				})
 			} else {
-				if(!failedAdds[digestedTransaction.player]) {
-					failedAdds[digestedTransaction.player] = {};
-					failedAdds[digestedTransaction.player][digestedTransaction.date] = [];
-				} else if(!failedAdds[digestedTransaction.player][digestedTransaction.date]) {
-					failedAdds[digestedTransaction.player][digestedTransaction.date] = [];
-				} else if(failedAdds[digestedTransaction.player][digestedTransaction.date] && failedAdds[digestedTransaction.player][digestedTransaction.date].find(f => f.bid == digestedTransaction.bid && f.recordManID == digestedTransaction.adds[digestedTransaction.player])) {
-					continue;
-				}
-				const recordManID = leagueManagers[digestedTransaction.adds[digestedTransaction.player]].find(m => m.yearsactive.includes(season)).managerID;
+				if(failedAdds[digestedTransaction.player] && failedAdds[digestedTransaction.player][digestedTransaction.date] && failedAdds[digestedTransaction.player][digestedTransaction.date].find(f => f.bid == digestedTransaction.bid && f.recordManID == digestedTransaction.adds[digestedTransaction.player])) continue;
+				if(!failedAdds[digestedTransaction.player]) failedAdds[digestedTransaction.player] = {};
+				if(!failedAdds[digestedTransaction.player][digestedTransaction.date]) failedAdds[digestedTransaction.player][digestedTransaction.date] = [];
 				failedAdds[digestedTransaction.player][digestedTransaction.date].push({
-					recordManID,
+					recordManID: leagueManagers[digestedTransaction.adds[digestedTransaction.player]].find(m => m.yearsactive.includes(season)).managerID,
 					bid: digestedTransaction.bid,
 				});
 			}
@@ -264,8 +246,13 @@ const digestTransactions = (transactionsData, prevManagers, currentSeason, numbe
 			if(failedAdds[digestedTransaction.moves[0][0].player] && failedAdds[digestedTransaction.moves[0][0].player][digestedTransaction.date]) {
 
 				if(failedAdds[digestedTransaction.moves[0][0].player][digestedTransaction.date].find(f => f.bid == digestedTransaction.moves[0][0].bid && f.recordManID == digestedTransaction.recordManIDs[0])) {
-					totals.allTime[digestedTransaction.recordManIDs[0]].outbid--;
-					totals.seasons[season][digestedTransaction.recordManIDs[0]].outbid--;
+					if(digestedTransaction.week < playoffStarts[season]) {
+						totals.allTime[digestedTransaction.recordManIDs[0]].regular.outbid--;
+						totals.seasons[season][digestedTransaction.recordManIDs[0]].regular.outbid--;
+					} else {
+						totals.allTime[digestedTransaction.recordManIDs[0]].playoffs.outbid--;
+						totals.seasons[season][digestedTransaction.recordManIDs[0]].playoffs.outbid--;
+					}
 				} else {
 					digestedTransaction.failedAdds = [];
 					for(const failedAdd in failedAdds[digestedTransaction.moves[0][0].player][digestedTransaction.date]) {
@@ -279,58 +266,44 @@ const digestTransactions = (transactionsData, prevManagers, currentSeason, numbe
 			transactions.push(digestedTransaction);
 		}
 
-		
-
 		for(const roster of digestedTransaction.rosters) {
 			const recordManID = leagueManagers[roster].find(m => m.yearsactive.includes(season)).managerID;
 			
 			const type = digestedTransaction.type;
-			// add to league long totals
+			const allTypes = ['trade', 'waiver', 'outbid', 'freeAgent'];
+			// create alltime entry for manager
 			if(!totals.allTime[recordManID]) {
 				totals.allTime[recordManID] = {
-					regularSeason: {
-						trade: 0,
-						waiver: 0,
-						outbid: 0,
-					},
-					playoffs: {
-						trade: 0,
-						waiver: 0,
-						outbid: 0,
-					},
+					regular: {},
+					playoffs: {},
 					manager: prevManagers[season][recordManID],
 					recordManID,
 				};
+				for(const tType of allTypes) {
+					totals.allTime[recordManID].regular[tType] = 0;
+					totals.allTime[recordManID].playoffs[tType] = 0;
+				}
 			}
-			if(digestedTransaction.week < playoffStarts[season]) {
-				totals.allTime[recordManID].regularSeason[type]++;
-			} else {
-				totals.allTime[recordManID].playoffs[type]++;
-			}
-			
-			// add to season long totals
-			if(!totals.seasons[season]) {
-				totals.seasons[season] = {}
-			}
+			// create season entry for manager
+			if(!totals.seasons[season]) totals.seasons[season] = {}
 			if(!totals.seasons[season][recordManID]) {
 				totals.seasons[season][recordManID] = {
-					regularSeason: {
-						trade: 0,
-						waiver: 0,
-						outbid: 0,
-					},
-					playoffs: {
-						trade: 0,
-						waiver: 0,
-						outbid: 0,
-					},
+					regular: {},
+					playoffs: {},
 					manager: prevManagers[season][recordManID],
 					recordManID,
 				};
+				for(const tType of allTypes) {
+					totals.seasons[season][recordManID].regular[tType] = 0;
+					totals.seasons[season][recordManID].playoffs[tType] = 0;
+				}
 			}
+			// add to alltime & season totals
 			if(digestedTransaction.week < playoffStarts[season]) {
-				totals.seasons[season][recordManID].regularSeason[type]++;
+				totals.allTime[recordManID].regular[type]++;
+				totals.seasons[season][recordManID].regular[type]++;
 			} else {
+				totals.allTime[recordManID].playoffs[type]++;
 				totals.seasons[season][recordManID].playoffs[type]++;
 			}
 		}
@@ -355,7 +328,8 @@ const digestTransaction = (transaction, prevManagers, currentSeason, leagueManag
 	if(transaction.status == 'failed' && !transaction.metadata.notes.includes('claimed by another owner')) return {success: false};
 	
 	const date = digestDate(transaction.status_updated)
-	const season = parseInt(date.split(',')[0].split(' ')[2]);
+	const transYear = parseInt(date.split(',')[0].split(' ')[2]);
+	const season = transYear > parseInt(currentSeason) ? parseInt(currentSeason) : transYear;
 
 	if(transaction.status == 'failed') {
 		let digestedTransaction = {
@@ -372,9 +346,8 @@ const digestTransaction = (transaction, prevManagers, currentSeason, leagueManag
 	const handled = [];
 	const transactionRosters = transaction.roster_ids;
 	const bid = transaction.settings?.waiver_bid;
-	
 
-	let transactionManagers = [];
+	const transactionManagers = [];
 	for(const transactionRoster of transactionRosters) {
 		const recordManID = leagueManagers[transactionRoster].find(m => m.yearsactive.includes(season)).managerID;
 		transactionManagers.push(recordManID);
@@ -385,16 +358,12 @@ const digestTransaction = (transaction, prevManagers, currentSeason, leagueManag
 		date,
 		year: season,
 		week: transaction.leg,
-		type: "waiver",
+		type: transaction.type == 'trade' ? 'trade' : waiverBudgets[season].faab && !bid && bid != 0 ? 'freeAgent' : 'waiver',
 		rosters: transactionRosters,
 		recordManIDs: transactionManagers,
 		moves: [],
 	}
-	
-	if(transaction.type == "trade") {
-		digestedTransaction.type = "trade";
-	}
-	
+		
 	if(season != currentSeason) {
 		digestedTransaction.previousOwners = [];
 		for(const roster of transactionRosters) {
@@ -408,22 +377,16 @@ const digestTransaction = (transaction, prevManagers, currentSeason, leagueManag
 	const draftPicks = transaction.draft_picks;
 
 	for(let player in adds) {
-		if(!player) {
-			continue;
-		}
+		if(!player) continue;
 		handled.push(player);
 		digestedTransaction.moves.push(handleAdds(transactionRosters, adds, drops, player, bid, season, waiverBudgets));
 	}
 
 	for(let player in drops) {
-		if(handled.indexOf(player) > -1) {
-			continue;
-		}
+		if(handled.indexOf(player) > -1) continue;
 
 		let move = new Array(transactionRosters.length).fill(null);
-		if(!player) {
-			continue;
-		}
+		if(!player) continue;
 		move[transactionRosters.indexOf(drops[player])] = {
 			type: "Dropped",
 			player
@@ -524,22 +487,18 @@ const handleAdds = (rosters, adds, drops, player, bid, season, waiverBudgets) =>
 		return move;
 	}
 
-	let budgetPercRemaining;
-	let budgetPercTotal;
+	let budgetPercRemaining, budgetPercTotal;
 	if(bid || bid == 0) {
 
 		budgetPercTotal = bid / waiverBudgets[season].faab * 100;
 
 		waiverBudgets[season].managers[adds[player]].remainingFaab += bid;
-		if(waiverBudgets[season].managers[adds[player]].remainingFaab > 0) {
-			budgetPercRemaining = bid / waiverBudgets[season].managers[adds[player]].remainingFaab * 100;
-		} else {
-			budgetPercRemaining = 0;
-		}
+		budgetPercRemaining = waiverBudgets[season].managers[adds[player]].remainingFaab > 0 ? bid / waiverBudgets[season].managers[adds[player]].remainingFaab * 100 : 0;
 	}
 
 	move[rosters.indexOf(adds[player])] = {
 		type: "Added",
+		subType: waiverBudgets[season].faab && !bid && bid != 0 ? 'freeAgent' : 'waiver',
 		asset: 'player',
 		player,
 		bid,

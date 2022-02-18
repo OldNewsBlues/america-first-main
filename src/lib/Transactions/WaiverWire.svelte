@@ -5,16 +5,12 @@
 	import DataTable, { Head, Body, Row, Cell } from '@smui/data-table';
 
 	let loading = true;
-	let transactionTotals, currentManagers, rosters, year;
-	let waiverType, waiverBudget, waiverWire;
+	let transactionTotals, currentManagers, rosters, year, waiverType, waiverBudget, waiverWire;
 
     const leagueManagers = {};
-	for(const managerID in managers) {
-		const manager = managers[managerID];
-
-		if(!leagueManagers[manager.roster]) {
-			leagueManagers[manager.roster] = [];
-		}
+	for(const manager of managers) {
+		if(!leagueManagers[manager.roster]) leagueManagers[manager.roster] = [];
+		
 		leagueManagers[manager.roster].push({
 			managerID: manager.managerID,
 			rosterID: manager.roster,
@@ -30,10 +26,8 @@
             const recordManID = leagueManagers[rosterID].find(m => m.yearsactive.includes(year)).managerID;
 
 			let remainingFaab;
-			if(waiverType == 2) {
-				remainingFaab = waiverBudget - rosters[key].settings.waiver_budget_used;
-			}
-			const moves = transactionTotals[recordManID].regularSeason.waiver + transactionTotals[recordManID].playoffs.waiver;
+			if(waiverType == 2) remainingFaab = waiverBudget - rosters[key].settings.waiver_budget_used;
+			const moves = transactionTotals[recordManID].regular.waiver + transactionTotals[recordManID].playoffs.waiver;
 			waiverWire.push({
                 recordManID,
 				rosterID: rosters[key].roster_id,
@@ -54,9 +48,7 @@
         year = parseInt(leagueData.season);
         transactionTotals = transactionsData.totals.seasons[year];
 
-		if(waiverType == 2) {
-			waiverBudget = leagueData.settings.waiver_budget;
-		}
+		if(waiverType == 2) waiverBudget = leagueData.settings.waiver_budget;
 
 		if(transactionsData.stale) {
 			const newTransactions = await getLeagueTransactions(true, true);

@@ -9,7 +9,7 @@ export const loadPlayers = async (refresh = false) => {
             stale: false
         };
 	} 
-    
+    // comment out lines 13-24 to force refresh of playersInfo
     const now = Math.round(new Date().getTime() / 1000);
     const playersInfoCompressed = await localStorage.getItem("playersInfo");
     const newString = await  LZString.decompressFromUTF16(playersInfoCompressed);
@@ -22,7 +22,7 @@ export const loadPlayers = async (refresh = false) => {
             stale: true
         }
     }
-
+    // uncomment following line (26) to force refresh of playersInfo
     // let playersInfo, expiration, now;
 
     if(!playersInfo || !expiration || now > expiration) {

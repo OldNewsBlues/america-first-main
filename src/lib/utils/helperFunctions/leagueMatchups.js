@@ -10,9 +10,7 @@ import { get } from 'svelte/store';
 import {matchupsStore} from '$lib/stores';
 
 export const getLeagueMatchups = async () => {
-	if(get(matchupsStore).matchupWeeks) {
-		return get(matchupsStore);
-	}
+	if(get(matchupsStore).matchupWeeks) return get(matchupsStore);
 
 	const [nflState, leagueData, rosterRes, users, playoffsRes] = await waitForAll(
 		getNflState(),
@@ -23,12 +21,7 @@ export const getLeagueMatchups = async () => {
 	).catch((err) => { console.error(err); });
 	const playoffs = await playoffsRes.json();
 
-	let week = 1;
-	if(nflState.season_type == 'regular') {
-		week = nflState.display_week;
-	} else if(nflState.season_type == 'post') {
-		week = 18;
-	}
+	let week = leagueData.status == 'complete' ? leagueData.settings.playoff_week_start - 1 + playoffs.pop().r : nflState.season_type == 'regular' ? nflState.display_week : nflState.season_type == 'post' ? 18 : 1;
 	const year = leagueData.season;
 
 	const regularSeasonLength = leagueData.settings.playoff_week_start - 1;
@@ -38,9 +31,7 @@ export const getLeagueMatchups = async () => {
 
 	const yearManagers = {};
     const yearP = parseInt(year);
-    for(const managerID in managers) {
-		const manager = managers[managerID];
-
+    for(const manager of managers) {
 		if(manager.yearsactive.includes(yearP)) {
 			yearManagers[manager.roster] = {
 				managerID: manager.managerID,
@@ -55,7 +46,7 @@ export const getLeagueMatchups = async () => {
 
 	// pull in all matchup data for the season
 	const matchupsPromises = [];
-	for(let i = 1; i < fullSeasonLength; i++) {
+	for(let i = 1; i < fullSeasonLength + 1; i++) {
 		matchupsPromises.push(fetch(`https://api.sleeper.app/v1/league/${leagueID}/matchups/${i}`, {compress: true}))
 	}
 	const matchupsRes = await waitForAll(...matchupsPromises);
@@ -66,7 +57,6 @@ export const getLeagueMatchups = async () => {
 		const data = matchupRes.json();
 		matchupsJsonPromises.push(data)
 		if (!matchupRes.ok) throw new Error(data);
-		
 	}
 	const matchupsData = await waitForAll(...matchupsJsonPromises).catch((err) => { console.error(err); }).catch((err) => { console.error(err); });
 
@@ -102,9 +92,7 @@ const processMatchups = (inputMatchups, yearManagers, rosters, users, week) => {
 	
 	const matchups = {};
 	for(const match of inputMatchups) {
-		if(!matchups[match.matchup_id]) {
-			matchups[match.matchup_id] = [];
-		}
+		if(!matchups[match.matchup_id]) matchups[match.matchup_id] = [];
 		const user = users[rosters[match.roster_id - 1].owner_id];
 		const recordManager = yearManagers[match.roster_id];
 		const recordManID = recordManager.managerID;

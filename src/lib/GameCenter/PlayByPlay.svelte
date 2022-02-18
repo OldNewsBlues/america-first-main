@@ -1,5 +1,7 @@
 <script>
     import { getPlayByPlay, getGameStats, getPlayerStats, waitForAll, round, getGameDrives, getStarterPositions, LZString } from '$lib/utils/helper'; 
+    import filmData from '/Users/jessekovacs/Downloads/Film Data Processed - JSON.json';
+    import filmJson from '/Users/jessekovacs/Downloads/Film Data Processed - JSON (2).json';
     import LinearProgress from '@smui/linear-progress';
 
     export let newLoading, nflTeams, nflMatchups, yearLeagueData, fantasyStarters, managerInfo, weekMatchups, playersInfo, nflPlayerInfo, gameSelection, matchSelection, managerSelection, fantasyProducts, viewPlayerID, showGameBox, showMatchBox, leaderBoardInfo, weekSelection, yearSelection;
@@ -203,15 +205,9 @@
         let fantasyProducts = [];
         const score = yearLeagueData.scoring_settings;
         const positions = getStarterPositions(yearLeagueData);
-        if(positions.includes('IDP_FLEX') || positions.includes('DB') || positions.includes('LB') || positions.includes('DL')) {
-            idpEnabled = true;
-        }
-        if(!positions.includes('K')) {
-            kickerEnabled = false;
-        }
-        if(!positions.includes('DEF')) {
-            defenseEnabled = false;
-        }
+        if(positions.includes('IDP_FLEX') || positions.includes('DB') || positions.includes('LB') || positions.includes('DL')) idpEnabled = true;
+        if(!positions.includes('K')) kickerEnabled = false;
+        if(!positions.includes('DEF')) defenseEnabled = false;
 
         // extracts Espn Team ID from API link
         const parseEspnTeamID = (teamLink, linkType, weekSelection, yearSelection) => {
@@ -226,7 +222,7 @@
                 espnID = teamLink.slice(85, teamLink.indexOf('?'));
             } else if(linkType == 'participants') {
                 let espnPlayerID = teamLink.slice(85, teamLink.indexOf('?'));
-                if(allNflPlayerInfo.find(n => n.espn.id == espnPlayerID) && allNflPlayerInfo.find(n => n.espn.id == espnPlayerID).espn.t[yearSelection].length > 1) {
+                if(allNflPlayerInfo.find(n => n.espn.id == espnPlayerID) && allNflPlayerInfo.find(n => n.espn.id == espnPlayerID).espn.t[yearSelection].length > 1 && allNflPlayerInfo.find(n => n.espn.id == espnPlayerID).espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection)) {
                     espnID = nflTeams.find(t => t.espnAbbreviation == allNflPlayerInfo.find(n => n.espn.id == espnPlayerID).espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team).espnAbbreviation;
                 } else if(allPlayersInfo.find(n => n.espnID == espnPlayerID) && allPlayersInfo.find(n => n.espnID == espnPlayerID).wi[yearSelection] && allPlayersInfo.find(n => n.espnID == espnPlayerID).wi[yearSelection][weekSelection]?.t) {
                     espnID = nflTeams.find(t => t.sleeperID == allPlayersInfo.find(n => n.espnID == espnPlayerID).wi[yearSelection][weekSelection].t).espnAbbreviation;
@@ -347,13 +343,7 @@
                     firstPlayerInitial = firstPlayer.slice(0, 1);
                 }
                 let firstPlayerSurname = firstPlayer.slice(firstPlayer.indexOf('.') + 1, firstPlayer.indexOf('to') - 1);
-                let firstPlayerYards = null;
-
-                firstPlayerYards = play.description.slice(play.description.indexOf('yards') - 3, play.description.indexOf('yards') - 1);
-                if(firstPlayerYards[0] == ' ') {
-                    firstPlayerYards = firstPlayerYards.slice(1)
-                }
-                firstPlayerYards = parseInt(firstPlayerYards);
+                let firstPlayerYards = parseInt(play.description.slice(play.description.indexOf('yards') - 3, play.description.indexOf('yards') - 1));
 
                 let lateralPlayerArray = [];
                 let lateralPlayer = play.description.slice();
@@ -362,19 +352,13 @@
 
                     let lateralPlayerInitial = lateralPlayer.slice(0, 1);
                     let lateralPlayerSurname = lateralPlayer.slice(lateralPlayer.indexOf('.') + 1, lateralPlayer.indexOf(' '));
-
-                    let lateralPlayerYards = lateralPlayer.slice(lateralPlayer.indexOf(' yards') - 2, lateralPlayer.indexOf(' yards'));
-                    if(lateralPlayerYards[0] == ' ') {
-                        lateralPlayerYards = lateralPlayerYards.slice(1);
-                    }
-                    lateralPlayerYards = parseInt(lateralPlayerYards);
-
+                    let lateralPlayerYards = parseInt(lateralPlayer.slice(lateralPlayer.indexOf(' yards') - 2, lateralPlayer.indexOf(' yards')));
+ 
                     lateralPlayerArray.push({
                         initial: lateralPlayerInitial,
                         surname: lateralPlayerSurname,
                         yards: lateralPlayerYards,
                     });
-
                     lateralCount--;
                 }
 
@@ -498,7 +482,6 @@
 
                 let fumbleText = [];
             
-
                 let firstFumble = finalDescription.includes('MUFFS') ? finalDescription.slice() : finalDescription.slice(finalDescription.indexOf('FUMBLES'));
                 let secondFumble = finalDescription.includes('MUFFS') ? finalDescription.slice() : finalDescription.slice(finalDescription.indexOf('FUMBLES') + 7);
                 // current logic maxes out at 3 fumbles
@@ -558,7 +541,6 @@
                     statEntry.yards = fumbleInfo.initialYards;
                     fumbleInfo.statYards.push(statEntry);
                 }
-
 
                 // RUSHING PLAYS
                 if((play.playType == 5 || play.playType == 9) && (play.secondDescription.includes('Yard Rush') || play.secondDescription.includes('Yrd Rush') || play.secondDescription.includes('Loss of'))) {
@@ -698,9 +680,7 @@
                     });
                  
                 } else {
-                    if(fumbleInfo.initialYards < 0 && !fumbleInfo.statYards[1]) {
-                        fumbleInfo.statYards[0].yards = fumbleInfo.ballMoved;
-                    }
+                    if(fumbleInfo.initialYards < 0 && !fumbleInfo.statYards[1]) fumbleInfo.statYards[0].yards = fumbleInfo.ballMoved;
                 }
                  
             } 
@@ -1140,13 +1120,9 @@
                 }
             } else if(statType == 'passing') {
 
-                if(!bonusTracker[player.playerInfo.playerID]) {
-                    bonusTracker[player.playerInfo.playerID] = {};
-                }
+                if(!bonusTracker[player.playerInfo.playerID]) bonusTracker[player.playerInfo.playerID] = {};
                 if(score.bonus_pass_yd_300 || score.bonus_pass_yd_400) {
-                    if(!bonusTracker[player.playerInfo.playerID].passingYards) {
-                        bonusTracker[player.playerInfo.playerID].passingYards = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].passingYards) bonusTracker[player.playerInfo.playerID].passingYards = 0;
                     let oldYards = bonusTracker[player.playerInfo.playerID].passingYards;
                     bonusTracker[player.playerInfo.playerID].passingYards += adjustedYards;
                     if(score.bonus_pass_yd_300 && oldYards < 300 && bonusTracker[player.playerInfo.playerID].passingYards >= 300) {
@@ -1161,9 +1137,7 @@
                 }
 
                 if(score.bonus_pass_cmp_25) {
-                    if(!bonusTracker[player.playerInfo.playerID].completions) {
-                        bonusTracker[player.playerInfo.playerID].completions = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].completions) bonusTracker[player.playerInfo.playerID].completions = 0;
                     bonusTracker[player.playerInfo.playerID].completions++;
                     if(bonusTracker[player.playerInfo.playerID].completions == 25) {
                         bonusInfo.fpts += score.bonus_pass_cmp_25;
@@ -1174,13 +1148,9 @@
 
             } else if(statType == 'rushing') {
 
-                if(!bonusTracker[player.playerInfo.playerID]) {
-                    bonusTracker[player.playerInfo.playerID] = {};
-                }
+                if(!bonusTracker[player.playerInfo.playerID]) bonusTracker[player.playerInfo.playerID] = {};
                 if(score.bonus_rush_att_20) {
-                    if(!bonusTracker[player.playerInfo.playerID].carries) {
-                        bonusTracker[player.playerInfo.playerID].carries = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].carries) bonusTracker[player.playerInfo.playerID].carries = 0;
                     bonusTracker[player.playerInfo.playerID].carries++;
                     if(bonusTracker[player.playerInfo.playerID].carries == 20) {
                         entry.fpts += score.bonus_rush_att_20;
@@ -1190,9 +1160,7 @@
                 }
 
                 if(score.bonus_rush_yd_100 || score.bonus_rush_yd_200 || score.bonus_rush_rec_yd_100 || score.bonus_rush_rec_yd_200) {
-                    if(!bonusTracker[player.playerInfo.playerID].rushingYards) {
-                        bonusTracker[player.playerInfo.playerID].rushingYards = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].rushingYards) bonusTracker[player.playerInfo.playerID].rushingYards = 0;
                     let oldYards = bonusTracker[player.playerInfo.playerID].rushingYards
                     bonusTracker[player.playerInfo.playerID].rushingYards += adjustedYards;
                     
@@ -1223,15 +1191,11 @@
                 
             } else if(statType == 'idp') {
 
-                if(!bonusTracker[player.playerInfo.playerID]) {
-                    bonusTracker[player.playerInfo.playerID] = {};
-                }
+                if(!bonusTracker[player.playerInfo.playerID]) bonusTracker[player.playerInfo.playerID] = {};
 
                 if(extraInfo == 'tackling') {
 
-                    if(!bonusTracker[player.playerInfo.playerID].tackles) {
-                        bonusTracker[player.playerInfo.playerID].tackles = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].tackles) bonusTracker[player.playerInfo.playerID].tackles = 0;
                     bonusTracker[player.playerInfo.playerID].tackles++;
                     if(bonusTracker[player.playerInfo.playerID].tackles == 10) {
                         bonusInfo.fpts += score.bonus_tkl_10p;
@@ -1240,9 +1204,7 @@
                     }
                 } else if(extraInfo == 'sacks') {
 
-                    if(!bonusTracker[player.playerInfo.playerID].sacks) {
-                        bonusTracker[player.playerInfo.playerID].sacks = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].sacks) bonusTracker[player.playerInfo.playerID].sacks = 0;
                     bonusTracker[player.playerInfo.playerID].sacks++;
                     if(bonusTracker[player.playerInfo.playerID].sacks == 2) {
                         bonusInfo.fpts += score.bonus_sack_2p;
@@ -1252,9 +1214,7 @@
 
                 } else if(extraInfo == 'passDefense') {
 
-                    if(!bonusTracker[player.playerInfo.playerID].passDefends) {
-                        bonusTracker[player.playerInfo.playerID].passDefends = 0;
-                    }
+                    if(!bonusTracker[player.playerInfo.playerID].passDefends) bonusTracker[player.playerInfo.playerID].passDefends = 0;
                     bonusTracker[player.playerInfo.playerID].passDefends++;
                     if(bonusTracker[player.playerInfo.playerID].passDefends == 3) {
                         bonusInfo.fpts += score.idp_pass_def_3p;
@@ -1301,9 +1261,7 @@
             let DEFscore = 0;
             let DEFthreshold;
             let DEFdescription;
-            if(score.pts_allow) {
-                DEFscore += teamScore * score.pts_allow;
-            } 
+            if(score.pts_allow) DEFscore += teamScore * score.pts_allow;
             if(teamScore == 0) {
                 DEFscore += (score?.pts_allow_0 || 0);
                 DEFthreshold = 'pts_allow_0';
@@ -1391,9 +1349,7 @@
             for(const playKey in playArray) {
                 const play = playArray[playKey];
                 // create play-array to group fpts by multiple players in one play
-                if(!fantasyPlay[play.playID]) {
-                    fantasyPlay[play.playID] = [];
-                }
+                if(!fantasyPlay[play.playID]) fantasyPlay[play.playID] = [];
 
                 let fumbleInfo;
                 if((play.description.includes('FUMBLES') || play.description.includes('MUFFS'))) {
@@ -2498,12 +2454,9 @@
                                     playerInfo: player.playerInfo,
                                     fpts,
                                     description: play.description,
-                                    shortDesc: 'Solo Tackle',
+                                    shortDesc: player.yards < 0 ? 'Solo Tackle for Loss' : 'Solo Tackle',
                                     bonus: false, 
                                     bonusDesc: [],
-                                } 
-                                if(player.yards < 0) {
-                                    entryIDP.shortDesc += ' for Loss';
                                 } 
                                 if(score.bonus_tkl_10p) {
                                     const tackleBonusInfo = processBonus(player.yards, player, 'idp', 'tackling');
@@ -2525,12 +2478,9 @@
                                     playerInfo: player.playerInfo,
                                     fpts,
                                     description: play.description,
-                                    shortDesc: 'Assisted Tackle',
+                                    shortDesc: player.yards < 0 ? 'Assisted Tackle for Loss' : 'Assisted Tackle',
                                     bonus: false, 
                                     bonusDesc: [],
-                                } 
-                                if(player.yards < 0) {
-                                    entryIDP.shortDesc += ' for Loss';
                                 } 
                                 if(score.bonus_tkl_10p) {
                                     const tackleBonusInfo = processBonus(player.yards, player, 'idp', 'tackling');
@@ -2837,17 +2787,11 @@
                 const fpts = score[key] ? passingTotals[key] * score[key] : 0;
                 if(fpts != 0) {
                     statsEntry.fpts += fpts;
-
-                    let metric = passingTotals[key];
-                    if(key.includes('bonus')) {
-                        metric = 'bonus';
-                    } 
-
                     statsEntry.stats.push({
                         stat: key,
                         statDesc: statDescriptions[key],
-                        metric: metric,
-                        fpts: fpts,
+                        metric: key.includes('bonus') ? 'bonus' : passingTotals[key],
+                        fpts,
                     })
                 }
             }
@@ -2889,17 +2833,11 @@
 
                 if(fpts != 0) {
                     statsEntry.fpts += fpts;
-
-                    let metric = generalTotals[key];
-                    if(key.includes('bonus')) {
-                        metric = 'bonus';
-                    } 
-
                     statsEntry.stats.push({
                         stat: key,
                         statDesc: statDescriptions[key],
-                        metric: metric,
-                        fpts: fpts,
+                        metric: key.includes('bonus') ? 'bonus' : generalTotals[key],
+                        fpts,
                     })
                 }
             }
@@ -2921,12 +2859,8 @@
             
             const pointsAllowed = defensiveStats?.find(s => s.abbreviation == 'PA').value || 0;
             let yardsAllowed = defensiveStats?.find(s => s.abbreviation == 'YA').value || 0; 
-            if(score.def_kr_yd) {
-                yardsAllowed += opponentStats.find(c => c.name == 'kicking')?.stats.find(s => s.abbreviation == 'KRYDS').value || 0;
-            }
-            if(score.def_pr_yd) {
-                yardsAllowed += opponentStats.find(c => c.name == 'punting')?.stats.find(s => s.shortDisplayName == 'PRYDS').value || 0;
-            }    
+            if(score.def_kr_yd) yardsAllowed += opponentStats.find(c => c.name == 'kicking')?.stats.find(s => s.abbreviation == 'KRYDS').value || 0;
+            if(score.def_pr_yd) yardsAllowed += opponentStats.find(c => c.name == 'punting')?.stats.find(s => s.shortDisplayName == 'PRYDS').value || 0;
             
             const defensiveTotals = {
                 pts_allow: pointsAllowed,
@@ -3002,7 +2936,7 @@
                         stat: key,
                         statDesc: statDescriptions[key],
                         metric: metric,
-                        fpts: fpts,
+                        fpts,
                     })
                 }
             }
@@ -3055,17 +2989,11 @@
                 const fpts = score[key] ? defensiveTotals[key] * score[key] : 0;
                 if(fpts != 0) {
                     statsEntry.fpts += fpts;
-
-                    let metric = defensiveTotals[key];
-                    if(key.includes('bonus') || key == 'idp_pass_def_3p') {
-                        metric = 'bonus';
-                    } 
-
                     statsEntry.stats.push({
                         stat: key,
                         statDesc: statDescriptions[key],
-                        metric: metric,
-                        fpts: fpts,
+                        metric: key.includes('bonus') || key == 'idp_pass_def_3p' ? 'bonus' : defensiveTotals[key],
+                        fpts,
                     })
                 }
             }
@@ -3106,17 +3034,11 @@
                 const fpts = score[key] ? rushingTotals[key] * score[key] : 0;
                 if(fpts != 0) {
                     statsEntry.fpts += fpts;
-
-                    let metric = rushingTotals[key];
-                    if(key.includes('bonus')) {
-                        metric = 'bonus';
-                    } 
-
                     statsEntry.stats.push({
                         stat: key,
                         statDesc: statDescriptions[key],
-                        metric: metric,
-                        fpts: fpts,
+                        metric: key.includes('bonus') ? 'bonus' : rushingTotals[key],
+                        fpts,
                     })
                 }
             }
@@ -3231,7 +3153,7 @@
                         stat: key,
                         statDesc: statDescriptions[key],
                         metric: kickingTotals[key],
-                        fpts: fpts,
+                        fpts,
                     })
                 }
             }
@@ -3260,7 +3182,7 @@
                 for(const starter of starters) {
                     if(starter != '0') {
                         const starterInfo = nflPlayerInfo[starter];
-                        const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : starterInfo.espn.t[yearSelection][0];
+                        const team = playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 && starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection) ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : starterInfo ? starterInfo.espn.t[yearSelection][0] : 'NONE';
                         const starterEntry = {
                             playerID: starter,
                             espnID: playersInfo.players[starter].pos == 'DEF' ? null : playersInfo.players[starter].espnID ? playersInfo.players[starter].espnID : starterInfo.espn.id,
@@ -3284,9 +3206,7 @@
                         // get starters' game IDs
                         if(nflMatchups.find(m => m.some(m => m.team == nflTeams.find(t => t.espnAbbreviation == team)))) {
                             let nflGameID = nflMatchups.find(m => m.some(m => m.team == nflTeams.find(t => t.espnAbbreviation == team)))[0].gameID;
-                            if(!relevancyKey.games.includes(nflGameID)) {
-                                relevancyKey.games.push(nflGameID);
-                            }
+                            if(!relevancyKey.games.includes(nflGameID)) relevancyKey.games.push(nflGameID);
                         }
                     }
                 }
@@ -3362,10 +3282,7 @@
 
                         for(const team in gameStats) {
 
-                            let otherTeam = 'home'
-                            if(team == 'home') {
-                                otherTeam = 'away';
-                            }
+                            let otherTeam = team == 'home' ? 'away' : 'home'
 
                             totalSnaps[team] = gameStats[team].splits.categories.find(c => c.stats.find(s => s.abbreviation == 'OP')).stats.find(a => a.abbreviation == 'OP').value;
 
@@ -3544,8 +3461,7 @@
                             for(let k = 0; k < playsData.length; k++) {
                                 let play = playsData[k];
                                 // find which team made the play (checking team of first play participant is most/only reliably correct way)
-                                let playTeam;
-                                let linkType;
+                                let playTeam, linkType;
                                 if(play.participants && play.participants[0].athlete) {
                                     linkType = 'participants';
                                     playTeam = parseEspnTeamID(play.participants[0].athlete.$ref, linkType, weekSelection, yearSelection);
@@ -3553,12 +3469,7 @@
                                     linkType = 'play';
                                     playTeam = parseEspnTeamID(play.team.$ref, linkType, weekSelection, yearSelection);
                                 }
-                                let oppTeam;
-                                if(playTeam == homeEspn) {
-                                    oppTeam = awayEspn;
-                                } else {
-                                    oppTeam = homeEspn;
-                                }
+                                let oppTeam = playTeam == homeEspn ? awayEspn : homeEspn;
                                 // flagging penalty-negated plays
                                 const playType = play.type?.id || 0;
                                 const noPlay = checkNoPlay(playType, play.alternativeText);
@@ -3578,9 +3489,7 @@
                                     if(scoringType == 'touchdown') {
                                         if(play.pointAfterAttempt) {
                                             pointAfterType = play.pointAfterAttempt.id;
-                                            if((pointAfterType == 15 || pointAfterType == 16) && play.pointAfterAttempt.value == 0) {
-                                                pointAfterType = -1        // MY id for failed 2-pt conversion
-                                            }
+                                            if((pointAfterType == 15 || pointAfterType == 16) && play.pointAfterAttempt.value == 0) pointAfterType = -1        // MY id for failed 2-pt conversion
                                         } else {
                                             if(play.alternativeText.includes('Kick)')) {
                                                 pointAfterType = 61;
@@ -3738,9 +3647,7 @@
                                         // flagging DEF-relevant plays
                                         if(defenseEnabled == true && (homeDefStarted == true || awayDefStarted == true)) {
                                             let relevantDefEntry = isDefRelevant(play, playType, playTeam, homeDefStarted, awayDefStarted, homeEspn, awayEspn, homeDefense, awayDefense, playerKey, playerTeam);
-                                            if(relevantDefEntry) {
-                                                playEntry.relevantDEF.push(relevantDefEntry);
-                                            }
+                                            if(relevantDefEntry) playEntry.relevantDEF.push(relevantDefEntry);
                                         }
                                     }
                                     // only push on plays involving starters, and not called back for penalty (deal with those separately)
@@ -3924,7 +3831,7 @@
                             fn: playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).ln : playersInfo.players[starter].fn,
                             ln: playersInfo.players[starter].pos == 'DEF' ? 'Defense' : playersInfo.players[starter].ln,
                             pos: playersInfo.players[starter].pos,
-                            t: playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : starterInfo.espn.t[yearSelection][0],
+                            t: playersInfo.players[starter].pos == 'DEF' ? nflTeams.find(t => t.sleeperID == starter).espnAbbreviation : starterInfo && starterInfo.espn.t[yearSelection].length > 1 && starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection) ? starterInfo.espn.t[yearSelection].find(w => w.firstWeek <= weekSelection && w.lastWeek >= weekSelection).team : playersInfo.players[starter].wi[yearSelection][weekSelection] && playersInfo.players[starter].wi[yearSelection][weekSelection].t ? nflTeams.find(t => t.sleeperID == playersInfo.players[starter].wi[yearSelection][weekSelection].t).espnAbbreviation : starterInfo ? starterInfo.espn.t[yearSelection][0] : 'NONE',
                             avatar: playersInfo.players[starter].pos == 'DEF' ? `https://sleepercdn.com/images/team_logos/nfl/${starter.toLowerCase()}.png` : `https://sleepercdn.com/content/nfl/players/thumb/${starter}.jpg`,
                         }
                         startersArray.push(starterEntry);
@@ -3991,10 +3898,7 @@
 
                     for(const team in gameStats) {
 
-                        let otherTeam = 'home'
-                        if(team == 'home') {
-                            otherTeam = 'away';
-                        }
+                        let otherTeam = team == 'home' ? 'away' : 'home';
 
                         totalSnaps[team] = gameStats[team].splits.categories.find(c => c.stats.find(s => s.abbreviation == 'OP')).stats.find(a => a.abbreviation == 'OP').value;
 
@@ -4174,8 +4078,7 @@
                         for(let k = 0; k < playsData.length; k++) {
                             let play = playsData[k];
                             // which team made the play
-                            let playTeam;
-                            let linkType;
+                            let playTeam, linkType;
                             if(play.participants && play.participants[0].athlete) {
                                 linkType = 'participants';
                                 playTeam = parseEspnTeamID(play.participants[0].athlete.$ref, linkType, weekSelection, yearSelection);
@@ -4183,19 +4086,10 @@
                                 linkType = 'play';
                                 playTeam = parseEspnTeamID(play.team.$ref, linkType, weekSelection, yearSelection);
                             }
-                            let oppTeam;
-                
-                            if(playTeam == homeEspn) {
-                                oppTeam = awayEspn;
-                            } else {
-                                oppTeam = homeEspn;
-                            }
+                            let oppTeam = playTeam == homeEspn ? awayEspn : homeEspn;
 
                             // flagging penalty-negated plays
                             const playType = play.type?.id || 0;
-                            if(playType == 26) {
-                                let test = 'foo';
-                            }
                             const noPlay = checkNoPlay(playType, play.alternativeText);
                             // flagging scoring plays & tracking DEF points allowed
                             let scoringPlay = false;
@@ -4344,16 +4238,12 @@
                                     // which team is player on
                                     let linkType = 'player';
                                     let espnPlayerID = parseEspnTeamID(play.participants[playerKey].athlete.$ref, linkType, weekSelection, yearSelection);
-                                    let sleeperMatch;
                                     linkType = 'participants';
                                     let playerTeam = parseEspnTeamID(play.participants[playerKey].athlete.$ref, linkType, weekSelection, yearSelection);
+                                    let sleeperMatch = startersArray?.find(s => s.espnID == espnPlayerID) || null;
 
-                                    if(startersArray.find(s => s.espnID == espnPlayerID)) {
-                                        sleeperMatch = startersArray.find(s => s.espnID == espnPlayerID);
-                                    }
                                     // if the current player involved in the play is a starter, we combine the sleeper and espn info for their entry in the playEntry
                                     if(sleeperMatch) {
-
                                         const relevantEntry = {
                                             playerInfo: sleeperMatch,
                                             manager: sleeperMatch.owner,
@@ -4367,9 +4257,7 @@
                                     // flagging DEF-relevant plays
                                     if(defenseEnabled == true && (homeDefStarted == true || awayDefStarted == true)) {
                                         let relevantDefEntry = isDefRelevant(play, playType, playTeam, homeDefStarted, awayDefStarted, homeEspn, awayEspn, homeDefense, awayDefense, playerKey, playerTeam);
-                                        if(relevantDefEntry != null) {
-                                            playEntry.relevantDEF.push(relevantDefEntry);
-                                        }            
+                                        if(relevantDefEntry) playEntry.relevantDEF.push(relevantDefEntry);      
                                     }
                                 }
                                 // only push on plays involving starters, and not called back for penalty (deal with those separately)
@@ -4452,10 +4340,8 @@
                                             playEntry.relevantDEF.push(relevantEntry);
                                             fantasyRelevantPlaysForward.push(playEntry);
                                         } else if(turnoverOnDowns == true && score.def_4_and_stop && drive.result == 'DOWNS') {
-                                            let lastPlay = drive.plays.items[drive.plays.items.length - 1];
-                                            if(!lastPlay.participants) {
-                                                lastPlay = drive.plays.items[drive.plays.items.length - 2];
-                                            }
+                                            let lastPlay = !lastPlay.participants ? drive.plays.items[drive.plays.items.length - 2] : drive.plays.items[drive.plays.items.length - 1];
+
                                             let linkType = 'participants';
                                             let playTeam = parseEspnTeamID(lastPlay.participants[0].athlete.$ref, linkType, weekSelection, yearSelection);
                                             let oppTeam;
@@ -4543,9 +4429,7 @@
                 filteredProducts = filteredProducts.filter(p => p.some(p => p.playerInfo.owner.recordManID == managerSelection));
             } 
 
-            if(viewPlayerID != null && viewPlayerID != 'flush') {
-                filteredProducts = filteredProducts.filter(p => p.some(p => p.playerInfo.playerID == viewPlayerID));
-            }
+            if(viewPlayerID && viewPlayerID != 'flush') filteredProducts = filteredProducts.filter(p => p.some(p => p.playerInfo.playerID == viewPlayerID));
             filteredProducts = filteredProducts.sort((a, b) => b[0]?.order - a[0]?.order);
         }
         return filteredProducts;
@@ -4792,17 +4676,1056 @@
 
     // let espnPlayersInfo;
 
-    // const download_txt = async (dataToSave) => {
-    //     dataToSave = await getEspnPlayerData(dataToSave);
-    //     const textToSave = await JSON.stringify(dataToSave);
-    //     const hiddenElement = document.createElement('a');
-    //     // hiddenElement.href = 'data:attachment/text,' + LZString.compressToEncodedURIComponent(textToSave);
-    //     hiddenElement.href = 'data:attachment/text,' + encodeURI(textToSave);
-    //     hiddenElement.target = '_blank';
-    //     hiddenElement.download = 'myFile.txt';
-    //     hiddenElement.click();
-        
+    // const survivor = (data) => {
+    //     const survivorData = {};
+    //     survivorData[data.countries[0].country] = [];
+
+    //     for(const season of data.countries[0].seasons) {
+
+    //         const entry = {
+    //             season: season.season,
+    //             title: season.title,
+    //             episodeInfo: {
+    //                 numEpisodes: season.numEpisodes,
+    //                 episodes: [],
+    //             },
+    //             castInfo: {
+    //                 numCast: season.numCast,
+    //                 cast: [],
+    //             },
+    //             days: season.numDays,
+    //             winner: season.winner,
+    //             finalistInfo: {
+    //                 finalists: [],
+    //             },
+    //             juryInfo: {
+    //                 jury: [],
+    //             },
+    //             wikiLink: season.wikiLink,
+    //             viewers: season.viewers,
+    //             airDates: {
+    //                 start: season.airStart,
+    //                 end: season.airEnd,
+    //             },
+    //             filmDates: {
+    //                 start: season.filmStart,
+    //                 end: season.filmEnd,
+    //             },
+    //             location: season.location,
+    //         }
+    //         if(season.season == 42) continue;
+    //         entry.finalistInfo.finalists.push(season.winner);
+    //         if(!season.finalists.includes('\n')) {
+    //             entry.finalistInfo.finalists.push(season.finalists);
+    //         } else {
+    //             let finalist = season.finalists.split('\n')[0];
+    //             let finalist2 = season.finalists.split('\n')[1];
+    //             entry.finalistInfo.finalists.push(finalist);
+    //             entry.finalistInfo.finalists.push(finalist2);
+    //         }
+    //         entry.finalistInfo.numFinalists = entry.finalistInfo.finalists.length;
+
+    //         for(const cast of season.cast) {
+    //             const castEntry = {
+    //                 name: cast.split('"')[1],
+    //                 immunityInfo: {
+    //                     team: 0,
+    //                     individual: 0,
+    //                 },
+    //                 tribeInfo: {
+    //                     original: null,
+    //                     tribes: [],
+    //                 },
+    //             }
+    //             entry.castInfo.cast.push(castEntry);
+    //         }
+    //         for(let e = 0; e < season.episodeTitles.length; e++) {
+    //             if(!season.episodeTitles[e].includes('►') && season.episodeAirDates[e]) {
+    //                 entry.episodeInfo.episodes.push({
+    //                     title: season.episodeTitles[e].split('"')[1],
+    //                     airDate: season.episodeAirDates[e].split('"')[1],
+    //                 });
+    //             }
+    //         }
+            
+    //         survivorData[data.countries[0].country].push(entry);
+    //     }
+    //     return survivorData;
     // }
+
+    const film = (data) => {
+        const filmAlmanac = {
+            films: {},
+            genres: {
+                1000: 'War Film',
+                1001: 'World War One Film',
+                1002: 'World War Two Film',
+                1003: 'US-Vietnam War Film',
+                1004: 'US-Middle East War Film ',
+                1005: 'US Civil War Film',
+                1006: 'American Revolution Film',
+                1007: 'Combat Film',
+                1030: 'Period Piece',
+                1031: 'Ancient Egypt Film',
+                1032: 'Ancient Greece Film',
+                1033: 'Ancient Rome Film',
+                1034: 'Medieval Film',
+                1035: 'Prehistoric Film',
+                1036: 'Roaring Twenties Film',
+                1037: 'Swinging Sixties Film',
+                1038: 'Victorianish Film',
+                1080: 'Character Study',
+                1090: 'Religious Film',
+                1091: 'Evangelical Film',
+                1092: 'Buddhist Film',
+                1093: 'Chistian Film',
+                1094: 'Hindu Film',
+                1095: 'Islamic Film',
+                1096: 'Jewish Film',
+                2000: 'Action',
+                2001: 'Disaster Film',
+                2002: 'Sword & Sandal Film',
+                2010: 'Flying Film',
+                2011: 'Revenge Film',
+                2020: 'Fighting Film',
+                2021: 'Boxing Film',
+                2022: 'Kung-Fu',
+                2023: 'Samurai Film',
+                2040: 'Superhero Film',
+                2041: 'Origin Story',
+                2060: 'Crime Film',
+                2061: 'Buddy-Cop Film',
+                2062: 'Courtroom Drama',
+                2063: 'Detective Film',
+                2064: 'Gangster Film',
+                2065: 'Gang-Life Film',
+                2066: 'Hostage Film',
+                2067: 'Kidnapping Film',
+                2068: 'Narco-Film',
+                2069: 'Prison Film',
+                2070: 'Undercover Film',
+                2090: 'Cult Film',
+                3000: 'Drama',
+                3001: 'Family Drama',
+                3002: 'Tragedy',
+                3003: 'Social Issue Film',
+                3004: 'Ensemble Film',
+                3005: 'Mentor Film',
+                3006: 'Hyperlink Film',
+                3007: 'Teen Film',
+                3008: 'Workplace Film',
+                3009: 'Big Finance Film',
+                3010: 'Sport Film',
+                3011: 'Baseball Film',
+                3012: 'Basketball Film',
+                3013: 'Bowling Film',
+                3014: 'Chess Film',
+                3015: 'Cycling Film',
+                3016: 'Football Film',
+                3017: 'Golf Film',
+                3018: 'Gymnastics Film',
+                3019: 'Hockey Film',
+                3020: 'Ice Skating Film',
+                3021: 'Autoracing Film',
+                3022: 'Rugby Film',
+                3023: 'Skating Film',
+                3024: 'Soccer Film',
+                3025: 'Surfing Film',
+                3026: 'Winter Sports Film',
+                3030: 'Gambling Film',
+                3040: 'Coming-of-Age Film',
+                3041: 'Middle Age Film',
+                3042: 'Arrested Development Film',
+                3050: 'Family-Oriented Film',
+                3051: 'Animal Film',
+                3052: 'Urban Drama',
+                3053: 'Suburban Drama',
+                3060: 'Medical Film',
+                3061: 'Dying Film',
+                3062: 'Addiction Film',
+                3063: 'Mental Illness Film',
+                3064: 'Disability Film',
+                3065: 'Going Native Film',
+                3066: 'Political Film',
+                3067: 'Class Issue Film',
+                3068: 'Racial Film',
+                3070: 'Animation',
+                3071: 'Stop-Motion Animation',
+                3072: 'Anime',
+                3073: 'Hand-drawn Animation',
+                3080: 'Theater Film',
+                3081: 'Writing Film',
+                3082: 'Dance Film',
+                3083: 'Film-making Film',
+                3084: 'Art Film',
+                3085: 'Cooking Film',
+                3086: 'Fashion Film',
+                3087: 'Music Film',
+                3090: 'Musical',
+                4000: 'Romance',
+                4001: 'Breakup Film',
+                4002: 'Love Triangle Film',
+                4003: 'LGBT Film',
+                4004: 'Feminist Film',
+                4004: 'Erotic Film',
+                4005: 'Wedding Film',
+                4006: 'Rocky Relationship Film',
+                4007: 'Singles Film',
+                4020: 'Historical Film',
+                4021: 'Alternative History Film',
+                4022: 'Autobiographical Film',
+                4023: 'Based on a True Story',
+                4024: 'Docudrama',
+                4025: 'Documentary',
+                4026: 'Historical Event Film',
+                4030: 'Nazi-Centric Film',
+                4040: 'Holiday Film',
+                4041: 'Christmas Film',
+                4042: 'Halloween Film',
+                4043: 'Thanksgiving Film',
+                4044: 'Valentines Day Film',
+                4050: 'Anthology',
+                4060: 'Avant-garde Film',
+                4070: 'Mumblecore',
+                4071: 'Slice-of-Life Film',
+                4080: 'Fish-out-of-Water Film',
+                5000: 'Comedy',
+                5001: 'Slapstick Comedy',
+                5002: 'Raunchy Comedy',
+                5003: 'Dark Comedy',
+                5004: 'Cringe Comedy',
+                5005: 'Farce',
+                5006: 'Satire',
+                5007: 'Comedy of Errors',
+                5008: 'Gross-Out Comedy',
+                5009: 'Screwball Comedy',
+                5010: 'Double Act Comedy',
+                5011: 'Stoner Comedy',
+                5020: 'Switcheroo Film',
+                5050: 'Parody',
+                5070: 'Prank Comedy',
+                5080: 'Party Film',
+                6000: 'Adventure',
+                6001: 'Treasure Hunt',
+                6002: 'Swashbuckler',
+                6003: 'Sea Adventure',
+                6004: 'Climbing Film',
+                6005: 'Misadventure Film',
+                6006: 'Roadtrip Film',
+                6010: 'Journalistic Film',
+                6020: 'Cat-and-Mouse Film',
+                6030: 'Fantasy',
+                6031: 'Fairytales & Legends',
+                6040: 'Western',
+                6050: 'Survival Film',
+                6051: 'Cold-Survival Film',
+                6052: 'Desert-Survival Film',
+                6053: 'Forest-Survival Film',
+                6054: 'Island-Survival Film',
+                6055: 'Jungle-Survival Film',
+                6056: 'Ocean-Survival Film',
+                6057: 'Savannah-Survival Film',
+                6070: 'Apocalyptic Film',
+                6071: 'Post-Apocalyptic Film',
+                7000: 'Mystery',
+                7001: 'Missing Person Film',
+                7002: 'Espionage Film',
+                7003: 'Whodunit',
+                7010: 'Bodysnatcher Film',
+                7030: 'Noir',
+                7051: 'Thriller',
+                7052: 'Psychological Film',
+                7053: 'Stalker Film',
+                7054: 'Claustrophobic Film',
+                7055: 'Railway Film',
+                7056: 'Escape Film',
+                7057: 'Instrutioneer Film',
+                7058: 'Military Film',
+                7080: 'Outerspace Film',
+                7081: 'Subaquatic Film',
+                7082: 'Submarine Film',
+                7083: 'Subterranean Film',
+                7090: 'Asylum Film',
+                8000: 'Science Fiction',
+                8001: 'Artifical Intelligence Film',
+                8002: 'Techno-Film',
+                8003: 'Cyber-Film',
+                8004: 'Social Media Film',
+                8020: 'Afterlife Film',
+                8030: 'Cyberpunk',
+                8031: 'Steampunk',
+                8040: 'Future Film',
+                8041: 'Retrofuturistic Film',
+                8050: 'Time Travel Film',
+                8051: 'Time Loop Film',
+                8052: 'Time Dilation Film',
+                8053: 'Nonlinear Narrative',
+                8060: 'Dystopian Film',
+                8065: 'Ecological Film',
+                8070: 'Tokusatsu',
+                8071: 'Kaiju',
+                8072: 'Kaijin',
+                8090: 'Illusionist Film',
+                9000: 'Horror',
+                9001: 'Slasher',
+                9002: 'Body Horror',
+                9003: 'Gore',
+                9004: 'Home Invasion Film',
+                9005: 'Giallo',
+                9006: 'Possession Film',
+                9010: 'Folk Horror',
+                9011: 'Camp & Cabin Horror',
+                9020: 'Found Footage Film',
+                9021: 'Screenshare Film',
+                9050: 'Monster Film',
+                9051: 'Mummy Film',
+                9052: 'Zombie Film',
+                9053: 'Dinosaur Film',
+                9054: 'Megafauna Film',
+                9055: 'Alien Film',
+                9056: 'Ghost Film',
+                9057: 'Demon Film',
+                9058: 'Vampire Film',
+                9059: 'Angel Film',
+                9060: 'Lovecraftian Film',
+                9061: 'Dragon Film',
+                9062: 'Werewolf Film',
+                9063: 'Witchcraft Film',
+                9064: 'Occult Film',
+            },
+        };
+        const films = data.flimData;
+        for(const film of films) {
+            const rtmJson = JSON.parse(filmJson.flimData[films.indexOf(film)].ratingInfo.rottenTomatoes.json);
+
+            if(film.crewInfo.categories.length != film.crewInfo.categoriesArray.length) {
+                let categories = [];
+                for(const cat of film.crewInfo.categories) {
+                    if(cat) categories.push(cat);
+                }
+                film.crewInfo.categories = categories;
+            }
+
+            filmAlmanac.films[film.masterID] = {
+                masterID: film.masterID,
+                type: {
+                    medium: film.type,
+                    isSequel: film.isSequel,
+                    isPrequel: film.isPrequel,
+                    isFranchise: film.isFranchise,
+                },
+                title: {
+                    OG: filmJson.flimData[films.indexOf(film)].foreignTitle ? filmJson.flimData[films.indexOf(film)].foreignTitle : filmJson.flimData[films.indexOf(film)].engTitle,
+                    ENG: filmJson.flimData[films.indexOf(film)].engTitle,
+                    ALT: [],
+                },
+                year: film.year,
+                release: {
+                    date: film.releaseDate,
+                    event: film.releaseInfo,
+                },
+                filming: {
+                    locations: film.filmingInfo.locations,
+                },
+                personal: {
+                    rating: film.ratingInfo.personal,
+                    firstWatch: film.firstWatch,
+                },
+                ratings: {
+                    flickChart: {
+                        globalRank: film.ratingInfo.flickChart.globalRank,
+                        globalNum1: film.ratingInfo.flickChart.ones_20s[0],
+                        globalTop20:  film.ratingInfo.flickChart.ones_20s[1],
+                        usersRanked: film.ratingInfo.flickChart.numUsers_numTimes[0],
+                        timesRanked:  film.ratingInfo.flickChart.numUsers_numTimes[1],
+                        winPerc: film.ratingInfo.flickChart.winPerc,
+                        myRank: film.ratingInfo.flickChart.info[0],
+                        myRating:  film.ratingInfo.flickChart.info[1],
+                        myTimesRanked:  film.ratingInfo.flickChart.info[2],
+                        myTotalRanked:  film.ratingInfo.flickChart.info[3],
+                        myTotalRankings:  film.ratingInfo.flickChart.info[4],
+                        upd: film.ratingInfo.lastUpdate,
+                    },
+                    imdb: {
+                        r: film.ratingInfo.imdb.rating_size[0] * 10,
+                        n: film.ratingInfo.imdb.rating_size[1],
+                        upd: film.ratingInfo.lastUpdate,
+                        d: {
+                            age: {
+                                18_29: {
+                                    r: film.ratingInfo.imdb.distribution.ages['18_29'][0],
+                                    n: film.ratingInfo.imdb.distribution.ages['18_29'][1],
+                                },
+                                30_44: {
+                                    r: film.ratingInfo.imdb.distribution.ages['30_44'][0],
+                                    n: film.ratingInfo.imdb.distribution.ages['30_44'][1],
+                                },
+                                over45: {
+                                    r: film.ratingInfo.imdb.distribution.ages.over45[0],
+                                    n: film.ratingInfo.imdb.distribution.ages.over45[1],
+                                },
+                                under18: {
+                                    r: film.ratingInfo.imdb.distribution.ages.under18[0],
+                                    n: film.ratingInfo.imdb.distribution.ages.under18[1],
+                                }
+                            },
+                            sex: {
+                                m: {
+                                    allAges: {
+                                        r: film.ratingInfo.imdb.distribution.men.allAges[0],
+                                        n: film.ratingInfo.imdb.distribution.men.allAges[1],
+                                    },
+                                    18_29: {
+                                        r: film.ratingInfo.imdb.distribution.men['18_29'][0],
+                                        n: film.ratingInfo.imdb.distribution.men['18_29'][1],
+                                    },
+                                    30_44: {
+                                        r: film.ratingInfo.imdb.distribution.men['30_44'][0],
+                                        n: film.ratingInfo.imdb.distribution.men['30_44'][1],
+                                    },
+                                    over45: {
+                                        r: film.ratingInfo.imdb.distribution.men.over45[0],
+                                        n: film.ratingInfo.imdb.distribution.men.over45[1],
+                                    },
+                                    under18: {
+                                        r: film.ratingInfo.imdb.distribution.men.under18[0],
+                                        n: film.ratingInfo.imdb.distribution.men.under18[1],
+                                    },
+                                },
+                                f: {
+                                    allAges: {
+                                        r: film.ratingInfo.imdb.distribution.women.allAges[0],
+                                        n: film.ratingInfo.imdb.distribution.women.allAges[1],
+                                    },
+                                    18_29: {
+                                        r: film.ratingInfo.imdb.distribution.women['18_29'][0],
+                                        n: film.ratingInfo.imdb.distribution.women['18_29'][1],
+                                    },
+                                    30_44: {
+                                        r: film.ratingInfo.imdb.distribution.women['30_44'][0],
+                                        n: film.ratingInfo.imdb.distribution.women['30_44'][1],
+                                    },
+                                    over45: {
+                                        r: film.ratingInfo.imdb.distribution.women.over45[0],
+                                        n: film.ratingInfo.imdb.distribution.women.over45[1],
+                                    },
+                                    under18: {
+                                        r: film.ratingInfo.imdb.distribution.women.under18[0],
+                                        n: film.ratingInfo.imdb.distribution.women.under18[1],
+                                    },
+                                }
+                            },
+                            score: {
+                                1: film.ratingInfo.imdb.distribution.rating1_10[0],
+                                2: film.ratingInfo.imdb.distribution.rating1_10[1],
+                                3: film.ratingInfo.imdb.distribution.rating1_10[2],
+                                4: film.ratingInfo.imdb.distribution.rating1_10[3],
+                                5: film.ratingInfo.imdb.distribution.rating1_10[4],
+                                6: film.ratingInfo.imdb.distribution.rating1_10[5],
+                                7: film.ratingInfo.imdb.distribution.rating1_10[6],
+                                8: film.ratingInfo.imdb.distribution.rating1_10[7],
+                                9: film.ratingInfo.imdb.distribution.rating1_10[8],
+                                10: film.ratingInfo.imdb.distribution.rating1_10[9],
+                            }
+                        }
+                    },
+                    tmdb: {
+                        r: film.ratingInfo.tmdb.rating_size[0],
+                        n: film.ratingInfo.tmdb.rating_size[1],
+                        upd: film.ratingInfo.lastUpdate,
+                    },
+                    metaCritic: {
+                        critics: {
+                            r: film.ratingInfo.metaCritic.criticsInfo[0],
+                            n: film.ratingInfo.metaCritic.criticsInfo[1],
+                            pos: film.ratingInfo.metaCritic.criticsInfo[2],
+                            mix: film.ratingInfo.metaCritic.criticsInfo[3],
+                            neg: film.ratingInfo.metaCritic.criticsInfo[4],
+                        },
+                        users: {
+                            r: film.ratingInfo.metaCritic.usersInfo[0],
+                            n: film.ratingInfo.metaCritic.usersInfo[1],
+                            pos: film.ratingInfo.metaCritic.usersInfo[2],
+                            mix: film.ratingInfo.metaCritic.usersInfo[3],
+                            neg: film.ratingInfo.metaCritic.usersInfo[4],
+                        },
+                        upd: film.ratingInfo.lastUpdate,
+                    },
+                    trakt: {
+                        r: film.ratingInfo.trakt.rating_size[0],
+                        n: film.ratingInfo.trakt.rating_size[1],
+                        watch: film.ratingInfo.trakt.watched,
+                        collect: film.ratingInfo.trakt.ccollected,
+                        play: film.ratingInfo.trakt.plays,
+                        upd: film.ratingInfo.lastUpdate,
+                    },
+                    rotTom: {
+                        critics: {
+                            all: {
+                                r: film.ratingInfo.rottenTomatoes.allCriticsInfo[4] * 10,
+                                n: film.ratingInfo.rottenTomatoes.allCriticsInfo[5],
+                                pos: film.ratingInfo.rottenTomatoes.allCriticsInfo[2],
+                                neg: film.ratingInfo.rottenTomatoes.allCriticsInfo[3],
+                                tomatoScore: film.ratingInfo.rottenTomatoes.allCriticsInfo[1],
+                                tomatoState: film.ratingInfo.rottenTomatoes.allCriticsInfo[0],
+                            },
+                            top: {
+                                r: film.ratingInfo.rottenTomatoes.topCriticsInfo[4] * 10,
+                                n: film.ratingInfo.rottenTomatoes.topCriticsInfo[5],
+                                pos: film.ratingInfo.rottenTomatoes.topCriticsInfo[2],
+                                neg: film.ratingInfo.rottenTomatoes.topCriticsInfo[3],
+                                tomatoScore: film.ratingInfo.rottenTomatoes.topCriticsInfo[1],
+                                tomatoState: film.ratingInfo.rottenTomatoes.topCriticsInfo[0],
+                            },
+                        },
+                        users: {
+                            all: {
+                                r: film.ratingInfo.rottenTomatoes.allUsersInfo[4] * 20,
+                                n: film.ratingInfo.rottenTomatoes.allUsersInfo[5],
+                                pos: film.ratingInfo.rottenTomatoes.allUsersInfo[2],
+                                neg: film.ratingInfo.rottenTomatoes.allUsersInfo[3],
+                                tomatoScore: film.ratingInfo.rottenTomatoes.allUsersInfo[1],
+                                tomatoState: film.ratingInfo.rottenTomatoes.allUsersInfo[0],
+                                reviews: rtmJson?.modal.audienceScoreAll.reviewCount || null, 
+                            },
+                            verified: {
+                                r: rtmJson?.modal.audienceScoreVerified.averageRating ? rtmJson.modal.audienceScoreVerified.averageRating * 20 : null,
+                                n: rtmJson?.modal.audienceScoreVerified.ratingCount || null,
+                                pos: rtmJson?.modal.audienceScoreVerified.likedCount || null,
+                                neg: rtmJson?.modal.audienceScoreVerified.notLikedCount || null,
+                                tomatoScore: rtmJson?.modal.audienceScoreVerified.score ? rtmJson.modal.audienceScoreVerified.score : null,
+                                tomatoState: rtmJson?.modal.audienceScoreVerified.audienceClass || null,
+                                reviews: rtmJson?.modal.audienceScoreVerified.reviewCount || null, 
+                            },
+                        },
+                        upd: film.ratingInfo.lastUpdate,
+                    },
+                    lbxd: {
+                        r: film.ratingInfo.letterboxd.rating * 20,
+                        n: film.ratingInfo.letterboxd.n,
+                        watch: film.ratingInfo.letterboxd.watched, 
+                        upd: film.ratingInfo.lastUpdate,
+                    },
+                },
+                siteInfo: {
+                    ids: film.siteIDs,
+                    links: film.links,
+                },
+                tagline: film.tagline ? film.tagline : film.taglineFC,
+                synopsis: film.synopsis,
+                setting: {
+                    time: null,
+                    era: null,
+                    country: null,
+                    region: null,
+                    state: null,
+                    city: null,
+                    limited: [],
+                },
+                specs: film.specs,
+                genre: {},
+                language: {
+                    pri: null,
+                    sec: null,
+                    all: film.lanaguageInfo.allSpoken,
+                },
+                source: {
+                    type: film.sourceInfo.type,
+                    authors: film.sourceInfo.authors,
+                    title: film.sourceInfo.title,
+                    releaseDate: film.sourceInfo.releaseDate,
+                },
+                box: {
+                    budget: film.boxOffice.budget,
+                    grossUS: film.boxOffice.grossUS,
+                    grossWorld: film.boxOffice.grossWorld,
+                },
+                countries: film.countries,
+                censor: film.censorRating,
+                cast: [],
+                crew: {},
+                company: {},
+            }
+
+            if(filmAlmanac.films[film.masterID].type.medium == 'limited series') {
+                filmAlmanac.films[film.masterID].type.seriesInfo = {
+                    numEpisodes: film.episodeInfo[0],
+                }
+            }
+
+            if(film.altTitles) {
+                if(Array.isArray(film.altTitles)) {
+                    for(const alt of film.altTitles) {
+                        filmAlmanac.films[film.masterID].title.ALT.push(alt);
+                    }
+                } else {
+                    filmAlmanac.films[film.masterID].title.ALT.push(film.altTitles);
+                }
+            }
+
+            if(filmAlmanac.films[film.masterID].language.all && !Array.isArray(filmAlmanac.films[film.masterID].language.all)) {
+                filmAlmanac.films[film.masterID].language.pri = filmAlmanac.films[film.masterID].language.all;
+            } else {
+                filmAlmanac.films[film.masterID].language.pri = filmAlmanac.films[film.masterID].language.all[0];
+            }
+
+            if(filmAlmanac.films[film.masterID].tagline && filmAlmanac.films[film.masterID].tagline.includes('"')) {
+                filmAlmanac.films[film.masterID].tagline = filmAlmanac.films[film.masterID].tagline.slice(1);
+                filmAlmanac.films[film.masterID].tagline = filmAlmanac.films[film.masterID].tagline.slice(0, filmAlmanac.films[film.masterID].tagline.indexOf('"'));
+            }
+            if(filmAlmanac.films[film.masterID].synopsis && filmAlmanac.films[film.masterID].synopsis.includes('"')) {
+                filmAlmanac.films[film.masterID].synopsis = filmAlmanac.films[film.masterID].synopsis.slice(1);
+                filmAlmanac.films[film.masterID].synopsis = filmAlmanac.films[film.masterID].synopsis.slice(0, filmAlmanac.films[film.masterID].synopsis.indexOf('"'));
+            }
+
+            filmAlmanac.films[film.masterID].ratings.master = {
+                r: ((filmAlmanac.films[film.masterID].ratings.imdb.r * filmAlmanac.films[film.masterID].ratings.imdb.n) + (filmAlmanac.films[film.masterID].ratings.tmdb.r * filmAlmanac.films[film.masterID].ratings.tmdb.n) + (filmAlmanac.films[film.masterID].ratings.trakt.r * filmAlmanac.films[film.masterID].ratings.trakt.n) + (filmAlmanac.films[film.masterID].ratings.rotTom.critics.all.r * filmAlmanac.films[film.masterID].ratings.rotTom.critics.all.n) + (filmAlmanac.films[film.masterID].ratings.rotTom.users.all.r * filmAlmanac.films[film.masterID].ratings.rotTom.users.all.n) + (filmAlmanac.films[film.masterID].ratings.lbxd.r * filmAlmanac.films[film.masterID].ratings.lbxd.n) + (filmAlmanac.films[film.masterID].ratings.metaCritic.critics.r * filmAlmanac.films[film.masterID].ratings.metaCritic.critics.n) + (filmAlmanac.films[film.masterID].ratings.metaCritic.users.r * filmAlmanac.films[film.masterID].ratings.metaCritic.users.n)) / (filmAlmanac.films[film.masterID].ratings.lbxd.n + filmAlmanac.films[film.masterID].ratings.imdb.n + filmAlmanac.films[film.masterID].ratings.tmdb.n + filmAlmanac.films[film.masterID].ratings.trakt.n + filmAlmanac.films[film.masterID].ratings.rotTom.critics.all.n + filmAlmanac.films[film.masterID].ratings.rotTom.users.all.n + filmAlmanac.films[film.masterID].ratings.metaCritic.critics.n + filmAlmanac.films[film.masterID].ratings.metaCritic.users.n),
+                n: filmAlmanac.films[film.masterID].ratings.lbxd.n + filmAlmanac.films[film.masterID].ratings.imdb.n + filmAlmanac.films[film.masterID].ratings.tmdb.n + filmAlmanac.films[film.masterID].ratings.trakt.n + filmAlmanac.films[film.masterID].ratings.rotTom.critics.all.n + filmAlmanac.films[film.masterID].ratings.rotTom.users.all.n + filmAlmanac.films[film.masterID].ratings.metaCritic.critics.n + filmAlmanac.films[film.masterID].ratings.metaCritic.users.n
+            }
+
+            const crewCatcher = (cat, member, array) => {
+
+                if(!member) {
+                    if(!filmAlmanac.films[film.masterID].crew[cat]) filmAlmanac.films[film.masterID].crew[cat] = [];
+                    return;
+                }
+
+                let cleanMember = member.slice(member.indexOf('(') + 1, member.indexOf(')'));
+                let cleanCredit = member.slice(member.indexOf(')') + 3);
+                cleanCredit = cleanCredit.slice(0, cleanCredit.indexOf(')'));
+
+                if(cat == 'Writer') {
+                    if(member.includes('graphic novel')) {
+                        if(!filmAlmanac.films[film.masterID].source.type) filmAlmanac.films[film.masterID].source.type = 'Graphic Novel';
+                        if(!filmAlmanac.films[film.masterID].source.authors) filmAlmanac.films[film.masterID].source.authors = [];
+                        filmAlmanac.films[film.masterID].source.authors.push(cleanMember);
+                    } else if(member.includes('novel')) {
+                        if(!filmAlmanac.films[film.masterID].source.type) filmAlmanac.films[film.masterID].source.type = 'Novel';
+                        if(!filmAlmanac.films[film.masterID].source.authors) filmAlmanac.films[film.masterID].source.authors = [];
+                        filmAlmanac.films[film.masterID].source.authors.push(cleanMember);
+                    } else if(member.includes('short story')) {
+                        if(!filmAlmanac.films[film.masterID].source.type) filmAlmanac.films[film.masterID].source.type = 'Short Story';
+                        if(!filmAlmanac.films[film.masterID].source.authors) filmAlmanac.films[film.masterID].source.authors = [];
+                        filmAlmanac.films[film.masterID].source.authors.push(cleanMember);
+                    } else if(member.includes('comics') || member.includes('comic book')) {
+                        if(!filmAlmanac.films[film.masterID].source.type) filmAlmanac.films[film.masterID].source.type = 'Comic Book';
+                        if(!filmAlmanac.films[film.masterID].source.authors) filmAlmanac.films[film.masterID].source.authors = [];
+                        filmAlmanac.films[film.masterID].source.authors.push(cleanMember);
+                    }
+                    if(member.includes('\\') && !filmAlmanac.films[film.masterID].source.title) {
+                        let sourceTitle = member.slice(member.indexOf('\\') + 2);
+                        filmAlmanac.films[film.masterID].source.title = sourceTitle.slice(0, sourceTitle.indexOf('\\'));
+                    }
+                }
+
+                if(!member.includes('assistant') || !member.includes('supervis')) {
+                    if(cat.includes('Script')) {
+                        if(member.includes('supervis')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]) {
+                                filmAlmanac.films[film.masterID].crew[cat] = {
+                                    p: []
+                                }
+                            }
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Script Supervisors']) filmAlmanac.films[film.masterID].crew[cat]['Script Supervisors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Script Supervisors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('doctor')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]) {
+                                filmAlmanac.films[film.masterID].crew[cat] = {
+                                    p: []
+                                }
+                            }
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Script Doctors']) filmAlmanac.films[film.masterID].crew[cat]['Script Doctors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Script Doctors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Location')) {
+                        if(!filmAlmanac.films[film.masterID].crew[cat]) {
+                            filmAlmanac.films[film.masterID].crew[cat] = {
+                                p: []
+                            }
+                        }
+                        if(member.includes('manager')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Managers']) filmAlmanac.films[film.masterID].crew[cat]['Managers'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Managers'].push(cleanMember);
+                            return;
+                        } else  if(member.includes('scout')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Scouts']) filmAlmanac.films[film.masterID].crew[cat]['Scouts'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Scouts'].push(cleanMember);
+                            return;
+                        } else  if(member.includes('coordinator')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Coordinators']) filmAlmanac.films[film.masterID].crew[cat]['Coordinators'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Coordinators'].push(cleanMember);
+                            return;
+                        }
+                    } else if(cat.includes('Stunt')) {
+                        if(member.includes('stunt coordinator')) {
+                            filmAlmanac.films[film.masterID].crew[cat]['Stunt Coordinator'] = cleanMember;
+                            return;
+                        }
+                    } else if(cat == 'Producer') {
+                        if(member.includes('executive')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['EP']) filmAlmanac.films[film.masterID].crew[cat]['EP'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['EP'].push(cleanMember);
+                            return;
+                        } else  if(member.includes('associate')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['AP']) filmAlmanac.films[film.masterID].crew[cat]['AP'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['AP'].push(cleanMember);
+                            return;
+                        } else  if(member.includes('co-')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['CO']) filmAlmanac.films[film.masterID].crew[cat]['CO'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['CO'].push(cleanMember);
+                            return;
+                        }
+                    } else if(cat.includes('Visual')) {
+                        if(member.includes('supervis')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]) {
+                                filmAlmanac.films[film.masterID].crew[cat] = {
+                                    p: []
+                                }
+                            }
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Supervisors']) filmAlmanac.films[film.masterID].crew[cat]['Supervisors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Supervisors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('3D')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['3D']) filmAlmanac.films[film.masterID].crew[cat]['3D'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['3D'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('compositor')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Compositors']) filmAlmanac.films[film.masterID].crew[cat]['Compositors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Compositors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('painter')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Painters']) filmAlmanac.films[film.masterID].crew[cat]['Painters'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Painters'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('color') || member.includes('colour')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Colorists']) filmAlmanac.films[film.masterID].crew[cat]['Colorists'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Colorists'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Camera')) {
+                        if(member.includes('gaffer')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Gaffers']) filmAlmanac.films[film.masterID].crew[cat]['Gaffers'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Gaffers'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('grip')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Grips']) filmAlmanac.films[film.masterID].crew[cat]['Grips'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Grips'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('camera operator')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Camera Ops']) filmAlmanac.films[film.masterID].crew[cat]['Camera Ops'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Camera Ops'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('lighting')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Lighting']) filmAlmanac.films[film.masterID].crew[cat]['Lighting'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Lighting'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('electrician')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Electricians']) filmAlmanac.films[film.masterID].crew[cat]['Electricians'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Electricians'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Casting')) {
+                        if(!filmAlmanac.films[film.masterID].crew[cat]) {
+                            filmAlmanac.films[film.masterID].crew[cat] = {
+                                p: []
+                            }
+                        }
+                        if(member.includes('extras')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Extras']) filmAlmanac.films[film.masterID].crew[cat]['Extras'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Extras'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Editorial')) {
+                        if(member.includes('color') || member.includes('colour')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Colorists']) filmAlmanac.films[film.masterID].crew[cat]['Colorists'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Colorists'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Animation')) {
+                        if(member.includes('lead animator')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Leads']) filmAlmanac.films[film.masterID].crew[cat]['Leads'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Leads'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Art')) {
+                        if(member.includes('set dresser')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Set Dressers']) filmAlmanac.films[film.masterID].crew[cat]['Set Dressers'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Set Dressers'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('foreman')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Foremen']) filmAlmanac.films[film.masterID].crew[cat]['Foremen'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Foremen'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('set designer')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Set Designers']) filmAlmanac.films[film.masterID].crew[cat]['Set Designers'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Set Designers'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('storyboard')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Storyboard']) filmAlmanac.films[film.masterID].crew[cat]['Storyboard'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Storyboard'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        }
+                    } else if(cat == 'Miscellaneous') {
+                        if(member.includes('accountant')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Accountants']) filmAlmanac.films[film.masterID].crew[cat]['Accountants'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Accountants'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('stand-in')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['StandIns']) filmAlmanac.films[film.masterID].crew[cat]['StandIns'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['StandIns'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Special')) {
+                        if(member.includes('supervis')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Supervisors']) filmAlmanac.films[film.masterID].crew[cat]['Supervisors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Supervisors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } 
+                    } else if(cat.includes('Sound')) {
+                        if(member.includes('supervis')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Supervisors']) filmAlmanac.films[film.masterID].crew[cat]['Supervisors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Supervisors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('editor')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Editors']) filmAlmanac.films[film.masterID].crew[cat]['Editors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Editors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('foley')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Foley']) filmAlmanac.films[film.masterID].crew[cat]['Foley'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Foley'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        }
+                    } else if(cat == 'Music Department') {
+                        if(member.includes('supervis')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Supervisors']) filmAlmanac.films[film.masterID].crew[cat]['Supervisors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Supervisors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('editor')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Editors']) filmAlmanac.films[film.masterID].crew[cat]['Editors'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Editors'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        }
+                    } else if(cat.includes('Stunt')) {
+                        if(member.includes('double')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Doubles']) filmAlmanac.films[film.masterID].crew[cat]['Doubles'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Doubles'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        }
+                    } else if(cat.includes('Make-up')) {
+                        if(member.includes('makeup department head')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Head']) {
+                                filmAlmanac.films[film.masterID].crew[cat]['Head'] = cleanMember;
+                            } else {
+                                filmAlmanac.films[film.masterID].crew[cat].p.push({
+                                    n: cleanMember,
+                                    c: cleanCredit.length > 0 ? cleanCredit : null,
+                                })
+                            }
+                            return;
+                        } else if(member.includes('hair') && !member.includes('makeup')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Hair']) filmAlmanac.films[film.masterID].crew[cat]['Hair'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Hair'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('prosthetic')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Prosthetics']) {
+                                filmAlmanac.films[film.masterID].crew[cat]['Prosthetics'] = {
+                                    p: []
+                                };
+                            }
+                            if(member.includes('designer')) {
+                                if(!filmAlmanac.films[film.masterID].crew[cat]['Prosthetics']['Designers']) filmAlmanac.films[film.masterID].crew[cat]['Prosthetics']['Designers'] = [];
+                                filmAlmanac.films[film.masterID].crew[cat]['Prosthetics']['Designers'].push({
+                                    n: cleanMember,
+                                    c: cleanCredit.length > 0 ? cleanCredit : null,
+                                })
+                                return;
+                            } else {
+                                filmAlmanac.films[film.masterID].crew[cat]['Prosthetics'].p.push({
+                                    n: cleanMember,
+                                    c: cleanCredit.length > 0 ? cleanCredit : null,
+                                })
+                                return;
+                            }
+                        } else if(member.includes('makeup') && !member.includes('hair')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Makeup']) filmAlmanac.films[film.masterID].crew[cat]['Makeup'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Makeup'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        }
+                    }  else if(cat.includes('Transportation')) {
+                        if(member.includes('driver')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Drivers']) filmAlmanac.films[film.masterID].crew[cat]['Drivers'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Drivers'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        } else if(member.includes('coordinator')) {
+                            if(!filmAlmanac.films[film.masterID].crew[cat]['Coordinators']) filmAlmanac.films[film.masterID].crew[cat]['Coordinators'] = [];
+                            filmAlmanac.films[film.masterID].crew[cat]['Coordinators'].push({
+                                n: cleanMember,
+                                c: cleanCredit.length > 0 ? cleanCredit : null,
+                            })
+                            return;
+                        }
+                    } 
+                }
+                return {cleanMember, cleanCredit};
+            }
+
+            for(let i = 0; i < film.castInfo.cast.length; i++) {
+                filmAlmanac.films[film.masterID].cast.push({
+                    actor: film.castInfo.cast[i],
+                    character: film.castInfo.characters[i],
+                })
+            }
+
+            for(let i = 0; i < film.companyInfo.categoriesArray.length; i++) {
+                if(film.companyInfo.categoriesArray[i].includes('Production')) {
+                    filmAlmanac.films[film.masterID].company['production'] = film.companyInfo.categories[i];
+                } else if(film.companyInfo.categoriesArray[i].includes('Distrib')) {
+                    filmAlmanac.films[film.masterID].company['distributors'] = film.companyInfo.categories[i];
+                } else if(film.companyInfo.categoriesArray[i].includes('SFX')) {
+                    filmAlmanac.films[film.masterID].company['SFX'] = film.companyInfo.categories[i];
+                } else if(film.companyInfo.categoriesArray[i].includes('Misce')) {
+                    filmAlmanac.films[film.masterID].company['other'] = film.companyInfo.categories[i];
+                }
+            }
+
+            for(let i = 0; i < film.crewInfo.categoriesArray.length; i++) {
+                let entry;
+
+                if(Array.isArray(film.crewInfo.categories[i])) {
+                    
+                    if(!filmAlmanac.films[film.masterID].crew[film.crewInfo.categoriesArray[i]]) {
+                        filmAlmanac.films[film.masterID].crew[film.crewInfo.categoriesArray[i]] = {
+                            p: [],
+                        };
+                    }
+
+                    for(const member of film.crewInfo.categories[i]) {
+                        
+                        entry = crewCatcher(film.crewInfo.categoriesArray[i], member, true);
+
+                        if(entry && entry.cleanMember.length > 0 && !filmAlmanac.films[film.masterID].crew[film.crewInfo.categoriesArray[i]].p.find(c => c.name == entry.cleanMember)) {
+                            filmAlmanac.films[film.masterID].crew[film.crewInfo.categoriesArray[i]].p.push({
+                                n: entry.cleanMember,
+                                c: entry.cleanCredit.length > 0 ? entry.cleanCredit : null,
+                            });
+                        }
+                    }
+                } else {
+                    entry = crewCatcher(film.crewInfo.categoriesArray[i], film.crewInfo.categories[i], false);
+                    if(entry && entry.cleanMember.length > 0) filmAlmanac.films[film.masterID].crew[film.crewInfo.categoriesArray[i]] = entry.cleanMember;
+                }
+                
+            }
+           
+        }
+    }
+
+    const download_txt = async (dataToSave) => {
+        dataToSave = await film(dataToSave);
+        const textToSave = await JSON.stringify(dataToSave);
+        const hiddenElement = document.createElement('a');
+        // hiddenElement.href = 'data:attachment/text,' + LZString.compressToEncodedURIComponent(textToSave);
+        hiddenElement.href = 'data:attachment/text,' + encodeURI(textToSave);
+        hiddenElement.target = '_blank';
+        hiddenElement.download = 'myFile.txt';
+        hiddenElement.click();
+        
+    }
 
 
 </script>
@@ -4983,11 +5906,11 @@
         color: #ededed;
     }
 
-    /* #test {
+    #test {
         display:inline-flex;
         height: 50px;
         width: 50px;
-    } */
+    }
 
 </style>
 
@@ -5007,7 +5930,7 @@
             {#if !fantasyProducts.fantasyProducts.length > 0}
                 <div class="noPlays">No plays yet...</div>
             {:else}
-                <!-- <div id="test" on:click={() => download_txt(nflPlayerInfo)}>Click Me</div> -->
+                <div id="test" on:click={() => download_txt(filmData)}>Click Me</div>
                 {#each filteredProducts as filteredProduct}
                     <div class="playContainer">
                         {#if filteredProduct[0] && filteredProduct[0]?.fpts != 0}

@@ -7,7 +7,6 @@
         getLeagueTransactions,
         getAwards,
         getLeagueRecords,
-        getManagerRecords,
         managers as managersObj,
         leagueID,
     } from '$lib/utils/helper';
@@ -21,7 +20,6 @@
             getLeagueTransactions(),
             getAwards(),
             getLeagueRecords(),
-            getManagerRecords(),
         );
 
         const manager = page.query.get('manager');
@@ -31,9 +29,7 @@
             managers: managersObj,
             managersInfo
         }
-        if(manager && (manager >= 0 && manager < managersObj.length)) {
-            props.manager = manager; 
-        }
+        if(manager && (manager >= 0 && manager < managersObj.length)) props.manager = manager; 
     
 		return { props };
 	}
@@ -66,8 +62,8 @@
             <p>Retrieving managers...</p>
             <LinearProgress indeterminate />
         </div>
-    {:then [rostersData, users, leagueData, transactionsData, awards, records, managerRecords]}
-        <Managers {managers} {manager} {rostersData} {users} {leagueData} {transactionsData} {awards} {records} {managerRecords} /> <!-- displays managers -->
+    {:then [rostersData, users, leagueData, transactionsData, awards, records]}
+        <Managers {managers} {manager} {rostersData} {users} {leagueData} {transactionsData} {awards} {records} /> <!-- displays managers -->
     {:catch error}
         <!-- promise was rejected -->
         <p>Something went wrong: {error.message}</p>

@@ -18,18 +18,12 @@ export async function get() {
         playoffsRes.json(),
     )
 
-    let year = nflState.league_season;
-    const regularSeasonLength = leagueData.settings.playoff_week_start - 1;
-    const playoffLength = playoffs.pop().r;
-    const fullSeasonLength = regularSeasonLength + playoffLength;
-    const scoringSettings = leagueData.scoring_settings;
-
     if(leagueDataArray.length == 0) {
         leagueDataArray.push({
-            year: year,
-            fullSeasonLength: fullSeasonLength,
+            year: parseInt(leagueData.season),
+            fullSeasonLength: leagueData.settings.playoff_week_start - 1 + playoffs.pop().r,
             leagueID: curSeason,
-            score: scoringSettings,
+            score: leagueData.scoring_settings,
         });
         curSeason = leagueData.previous_league_id;
 
@@ -38,10 +32,9 @@ export async function get() {
             let previousPlayoffsRes = await fetch(`https://api.sleeper.app/v1/league/${curSeason}/winners_bracket`, {compress: true});
             let previousPlayoffs = await previousPlayoffsRes.json();
 
-            let previousFullSeasonLength = previousLeagueData.settings.playoff_week_start - 1 + previousPlayoffs.pop().r;
             leagueDataArray.push({
                 year: parseInt(previousLeagueData.season),
-                fullSeasonLength: previousFullSeasonLength,
+                fullSeasonLength: previousLeagueData.settings.playoff_week_start - 1 + previousPlayoffs.pop().r,
                 leagueID: curSeason,
                 score: previousLeagueData.scoring_settings,
             });
@@ -55,7 +48,7 @@ export async function get() {
 
     for(let i = 0; i < leagueDataArray.length; i++) {
 
-        for(let week = 1; week <= leagueDataArray[i].fullSeasonLength + 3; week++) {
+        for(let week = 1; week <= leagueDataArray[i].fullSeasonLength; week++) {
             resPromises.push(
                 fetch(`https://api.sleeper.app/projections/nfl/${leagueDataArray[i].year}/${week}?season_type=regular&position[]=DB&position[]=DEF&position[]=DL&position[]=FLEX&position[]=IDP_FLEX&position[]=K&position[]=LB&position[]=QB&position[]=RB&position[]=REC_FLEX&position[]=SUPER_FLEX&position[]=TE&position[]=WR&position[]=WRRB_FLEX&order_by=ppr`, {compress: true})
             );
@@ -101,13 +94,8 @@ const computePlayers = (playerData, weeklyData, leagueDataArray) => {
             espnID: projPlayer.espn_id,
             wi: {},
         };
-        if(projPlayer.team) {
-            player.t = projPlayer.team;
-        }
-        if(projPlayer.team && projPlayer.injury_status) {
-            player.is = projPlayer.injury_status;
-        }
-
+        if(projPlayer.team) player.t = projPlayer.team;
+        if(projPlayer.team && projPlayer.injury_status) player.is = projPlayer.injury_status;
         computedPlayers[id] = player;
     }
 
@@ -119,12 +107,8 @@ const computePlayers = (playerData, weeklyData, leagueDataArray) => {
             const id = player.player_id;
             
             // check if the player is active in the NFL
-            if(!player.stats) {
-                continue;
-            } 
-            if(!computedPlayers[id].wi[player.season]) {
-                computedPlayers[id].wi[player.season] = {};
-            }
+            if(!player.stats) continue;
+            if(!computedPlayers[id].wi[player.season]) computedPlayers[id].wi[player.season] = {};
             computedPlayers[id].wi[player.season][player.week] = {
                 p: calculateProjection(player.stats, leagueDataArray.find(d => d.year == player.season).score),
                 o: player.opponent,

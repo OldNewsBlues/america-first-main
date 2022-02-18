@@ -34,17 +34,13 @@
             standingsInfo[standingKey].fpts = round(roster.settings.fpts + (roster.settings.fpts_decimal / 100));
             standingsInfo[standingKey].fptsAgainst = round(roster.settings.fpts_against + (roster.settings.fpts_against_decimal / 100));
             standingsInfo[standingKey].streak = roster.metadata.streak;
-            if(standingsInfo[standingKey].ties > 0) {
-                showTies = true;
-            }
+            if(standingsInfo[standingKey].ties > 0) showTies = true;
         }
 
         let finalStandings = Object.keys(standingsInfo).map((key) => standingsInfo[key]);
 
         for(const sortType of sortOrder) {
-            if(!finalStandings[0][sortType] && finalStandings[0][sortType] != 0) {
-                continue;
-            }
+            if(!finalStandings[0][sortType] && finalStandings[0][sortType] != 0) continue;
             finalStandings = [...finalStandings].sort((a,b) => b[sortType] - a[sortType]);
         }
 
@@ -53,7 +49,6 @@
     })
 
     let innerWidth;
-
     let newLoading = false;
     const changeYear = async (selectedYear) => {
         showTies = false;
@@ -63,16 +58,10 @@
         let yearMatchups = await getYearMatchups(selectedYear, 1, purpose);
 
         let regularSeasonLength = yearMatchups.yearLeagueData.settings.playoff_week_start - 1;
-        if(displayYear != currentYear) {
-            yearMatchups.rawData = yearMatchups.rawData.slice(0, regularSeasonLength + 1);
-        } else {
-            yearMatchups.rawData = yearMatchups.rawData.slice(0, yearMatchups.week - 1);
-        }
+        yearMatchups.rawData = displayYear != currentYear ? yearMatchups.rawData.slice(0, regularSeasonLength + 1) : yearMatchups.rawData.slice(0, yearMatchups.week - 1);
 
         let medianMatch = false;
         if(yearMatchups.yearLeagueData.settings.league_average_match == 1) medianMatch = true;
-        
-
         let newStandings = {};
         
         for(let i = 0; i < yearMatchups.rawData.length; i++) {
@@ -83,11 +72,7 @@
             const roster = yearMatchups.rosters[newStandings[standingKey].rosterID - 1];
             newStandings[standingKey].fpts = round(roster.settings.fpts + (roster.settings.fpts_decimal / 100));
             newStandings[standingKey].fptsAgainst = round(roster.settings.fpts_against + (roster.settings.fpts_against_decimal / 100));
-            if(selectedYear >= 2021) {
-                newStandings[standingKey].streak = roster.metadata.streak;
-            } else {
-                newStandings[standingKey].streak = '-';
-            }
+            newStandings[standingKey].streak = selectedYear >= 2021 ? roster.metadata.streak : '-';
             if(newStandings[standingKey].ties > 0) showTies = true;
         }
 
